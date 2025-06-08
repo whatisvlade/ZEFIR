@@ -7,9 +7,10 @@ import os
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
-    raise ValueError("❌ Не задан BOT_TOKEN. Убедись, что переменная окружения установлена.")
+    raise ValueError("❌ BOT_TOKEN не найден! Установи его в переменных окружения на Render.")
 
-app = Flask('')
+# Flask для keep-alive
+app = Flask(__name__)
 
 @app.route('/')
 def home():
@@ -22,6 +23,7 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
+# Команды бота
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await update.message.reply_html(
@@ -47,16 +49,15 @@ async def stylize(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with open('styled_text.png', 'rb') as photo:
         await update.message.reply_photo(photo=photo)
 
-async def main():
+# Запуск
+def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, stylize))
+
     keep_alive()
-    await application.run_polling()
+    application.run_polling()
 
 if __name__ == '__main__':
-    import asyncio
-    loop = asyncio.get_event_loop()
-    loop.create_task(main())
-    loop.run_forever()
+    main()
