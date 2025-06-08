@@ -6,6 +6,8 @@ from PIL import Image, ImageDraw, ImageFont
 import os
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("❌ Не задан BOT_TOKEN. Убедись, что переменная окружения установлена.")
 
 app = Flask('')
 
