@@ -40,8 +40,8 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "🚌 Автобусные туры:\nВыберите направление:",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🇬🇪 Грузия", callback_data="georgia")],
-                [InlineKeyboardButton("🇦🇧 Абхазия", callback_data="abkhazia")],
+                [InlineKeyboardButton("🌄🏖️ Грузия", callback_data="georgia")],
+                [InlineKeyboardButton("🌄🏖️ Абхазия", callback_data="abkhazia")],
                 [InlineKeyboardButton("🏖️ Геленджик", callback_data="gelendzhik")],
                 [InlineKeyboardButton("🌄 Дагестан", callback_data="dagestan")],
                 [InlineKeyboardButton("🌉 Питер", callback_data="piter")],
@@ -51,9 +51,20 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
         )
     elif query.data in ["georgia", "abkhazia", "gelendzhik", "dagestan", "piter", "teriberka", "belarus"]:
+        tour_links = {
+            "georgia": ("Грузия — прекрасная страна с горами, морем и вином.", "https://example.com/georgia"),
+            "abkhazia": ("Абхазия — отдых на побережье Чёрного моря.", "https://example.com/abkhazia"),
+            "gelendzhik": ("Геленджик — курорт на берегу Чёрного моря.", "https://example.com/gelendzhik"),
+            "dagestan": ("Дагестан — горы, культура и экстрим.", "https://example.com/dagestan"),
+            "piter": ("Питер (Санкт-Петербург) — культурная столица России.", "https://example.com/piter"),
+            "teriberka": ("Териберка — север, китов и северное сияние.", "https://example.com/teriberka"),
+            "belarus": ("Туры по Беларуси — уют, природа и история.", "https://example.com/belarus")
+        }
+        text, url = tour_links[query.data]
         await query.edit_message_text(
-            f"Вы выбрали направление: {query.data.upper()}",
+            f"✅ {text}\n\nОзнакомиться подробнее:",
             reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔗 Перейти на сайт", url=url)],
                 [InlineKeyboardButton("🔙 Назад", callback_data="bus_tours")]
             ])
         )
