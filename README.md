@@ -1,2 +1,3 @@
-# ZEFIR
-24/7 Telegram stylizer bot
+# ZEFIR Telegram Bot
+
+Бот для записи на визу с приветствием и кнопками.
