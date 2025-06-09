@@ -1,13 +1,12 @@
-from telegram import Update, ForceReply, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 from flask import Flask
 from threading import Thread
-from PIL import Image, ImageDraw, ImageFont
 import os
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-app = Flask(__name__)
+app = Flask('')
 
 @app.route('/')
 def home():
@@ -20,43 +19,61 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
+def get_main_menu():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
+        [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
+        [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
+        [InlineKeyboardButton("📞 Связаться", callback_data="contact")],
+    ])
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    keyboard = ReplyKeyboardMarkup(
-        [["🎫 Записаться", "📅 Проверить слот"],
-         ["ℹ️ Информация", "📞 Связаться"]],
-        resize_keyboard=True
+    text = (
+        f"Привет, {user.first_name}! 👋\n"
+        "Добро пожаловать в Zefir Travel!\n"
+        "Выберите, что вас интересует:"
     )
-    await update.message.reply_text(
-        f"Привет, {user.first_name}! 👋\nВыбери, что ты хочешь сделать:",
-        reply_markup=keyboard
-    )
+    await update.message.reply_text(text, reply_markup=get_main_menu())
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Напиши любой текст — я превращу его в картинку!")
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    data = query.data
 
-async def stylize(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
-    if user_message is None:
-        await update.message.reply_text("Пожалуйста, отправь текст.")
-        return
+    await query.answer()
 
-    img = Image.new('RGB', (500, 200), color=(73, 109, 137))
-    draw = ImageDraw.Draw(img)
-    font = ImageFont.load_default()
-    draw.text((50, 90), user_message, font=font, fill=(255, 255, 0))
+    if data == "bus_tours":
+        await query.edit_message_text("🚌 Автобусные туры:
+(тестовый текст)", reply_markup=back_button())
+    elif data == "avia_tours":
+        await query.edit_message_text("✈️ Авиа туры:
+(тестовый текст)", reply_markup=back_button())
+    elif data == "visas":
+        await query.edit_message_text("🛂 Визы:
+(тестовый текст)", reply_markup=back_button())
+    elif data == "contact":
+        await query.edit_message_text("📞 Контакты:
+(тестовый текст)", reply_markup=back_button())
+    elif data == "back":
+        await query.edit_message_text(
+            f"Привет, {query.from_user.first_name}! 👋\n"
+            "Добро пожаловать в Zefir Travel!\n"
+            "Выберите, что вас интересует:",
+            reply_markup=get_main_menu()
+        )
 
-    img.save('styled_text.png')
-    with open('styled_text.png', 'rb') as photo:
-        await update.message.reply_photo(photo=photo)
+def back_button():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("⬅️ Назад", callback_data="back")]
+    ])
 
-def main():
-    keep_alive()
+async def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, stylize))
-    application.run_polling()
+    application.add_handler(CallbackQueryHandler(handle_callback))
+    keep_alive()
+    await application.run_polling()
 
 if __name__ == '__main__':
-    main()
+    import asyncio
+    asyncio.run(main())
