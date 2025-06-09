@@ -1,5 +1,5 @@
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram import Update, ForceReply, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 from flask import Flask
 from threading import Thread
 from PIL import Image, ImageDraw, ImageFont
@@ -7,7 +7,7 @@ import os
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-app = Flask('')
+app = Flask(__name__)
 
 @app.route('/')
 def home():
@@ -20,17 +20,20 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-keyboard = ReplyKeyboardMarkup(
-    [['🗓 Записаться', '📄 Визы'], ['📍 Адреса', '📞 Связаться']],
-    resize_keyboard=True
-)
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+    keyboard = ReplyKeyboardMarkup(
+        [["🎫 Записаться", "📅 Проверить слот"],
+         ["ℹ️ Информация", "📞 Связаться"]],
+        resize_keyboard=True
+    )
     await update.message.reply_text(
-        f"Привет, {user.first_name}! 👋\n\nЯ помогу вам с записью на визу и визовой поддержкой.\nВыберите опцию ниже:",
+        f"Привет, {user.first_name}! 👋\nВыбери, что ты хочешь сделать:",
         reply_markup=keyboard
     )
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Напиши любой текст — я превращу его в картинку!")
 
 async def stylize(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
@@ -47,15 +50,13 @@ async def stylize(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with open('styled_text.png', 'rb') as photo:
         await update.message.reply_photo(photo=photo)
 
-async def main():
+def main():
+    keep_alive()
     application = ApplicationBuilder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, stylize))
-    keep_alive()
-    await application.run_polling()
+    application.run_polling()
 
 if __name__ == '__main__':
-    import asyncio
-    loop = asyncio.get_event_loop()
-    loop.create_task(main())
-    loop.run_forever()
+    main()
