@@ -1,9 +1,11 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
-from flask import Flask
-from threading import Thread
-from PIL import Image, ImageDraw, ImageFont
 import os
+import asyncio
+from threading import Thread
+from flask import Flask
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ForceReply
+from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
+from PIL import Image, ImageDraw, ImageFont
+import nest_asyncio
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -21,15 +23,16 @@ def keep_alive():
     t.start()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
+    keyboard = [
+        [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
+        [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
+        [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
+        [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        f"Привет, {user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
-            [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
-            [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
-            [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
-        ])
+        f"Привет, {update.effective_user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
+        reply_markup=reply_markup
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -55,43 +58,51 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     if query.data == "bus_tours":
-        await query.edit_message_text(
-            "🚌 Автобусные туры:\nТут будет список автобусных туров (заглушка)",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ])
-        )
+        keyboard = [
+            [InlineKeyboardButton("🇬🇪 Грузия", callback_data="georgia")],
+            [InlineKeyboardButton("🇦🇧 Абхазия", callback_data="abkhazia")],
+            [InlineKeyboardButton("🏖️ Геленджик", callback_data="gelendzhik")],
+            [InlineKeyboardButton("🌄 Дагестан", callback_data="dagestan")],
+            [InlineKeyboardButton("🌉 Питер", callback_data="piter")],
+            [InlineKeyboardButton("❄️ Териберка", callback_data="teriberka")],
+            [InlineKeyboardButton("🇧🇾 Беларусь", callback_data="belarus")],
+            [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
+        ]
+        await query.edit_message_text("Выберите направление:", reply_markup=InlineKeyboardMarkup(keyboard))
+
     elif query.data == "avia_tours":
         await query.edit_message_text(
             "✈️ Авиа туры:\nТут будет информация об авиаперелетах (заглушка)",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]])
         )
+
     elif query.data == "visas":
         await query.edit_message_text(
             "🛂 Визы:\nТут будет информация по визам (заглушка)",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]])
         )
+
     elif query.data == "contact":
         await query.edit_message_text(
             "📞 Связаться:\nТелефон: +375 29 000-00-00\nEmail: info@zefir.travel",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]])
         )
+
     elif query.data == "back_to_menu":
+        keyboard = [
+            [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
+            [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
+            [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
+            [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
             f"Привет, {query.from_user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
-                [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
-                [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
-                [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
-            ])
+            reply_markup=reply_markup
         )
+
+    else:
+        await query.edit_message_text(f"Вы выбрали направление: {query.data.upper()}")
 
 async def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -102,9 +113,6 @@ async def main():
     keep_alive()
     await application.run_polling()
 
-if __name__ == '__main__':
-    import asyncio
-    import nest_asyncio
+if __name__ == "__main__":
     nest_asyncio.apply()
-
-    asyncio.get_event_loop().run_until_complete(main())
+    asyncio.run(main())
