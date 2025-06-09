@@ -94,3 +94,9 @@ async def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_button))
     keep_alive()
+    await application.run_polling()
+
+if __name__ == '__main__':
+    import nest_asyncio
+    nest_asyncio.apply()
+    asyncio.get_event_loop().run_until_complete(main())
