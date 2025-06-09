@@ -1,3 +1,4 @@
+from telegram import Update
 import asyncio
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Напиши любой текст — я превращу его в картинку!")
