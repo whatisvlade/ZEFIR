@@ -43,17 +43,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     if data == "bus_tours":
-        await query.edit_message_text("🚌 Автобусные туры:
-(тестовый текст)", reply_markup=back_button())
+        await query.edit_message_text("🚌 Автобусные туры:(тестовый текст)", reply_markup=back_button())
     elif data == "avia_tours":
-        await query.edit_message_text("✈️ Авиа туры:
-(тестовый текст)", reply_markup=back_button())
+        await query.edit_message_text("✈️ Авиа туры:(тестовый текст)", reply_markup=back_button())
     elif data == "visas":
-        await query.edit_message_text("🛂 Визы:
-(тестовый текст)", reply_markup=back_button())
+        await query.edit_message_text("🛂 Визы:(тестовый текст)", reply_markup=back_button())
     elif data == "contact":
-        await query.edit_message_text("📞 Контакты:
-(тестовый текст)", reply_markup=back_button())
+        await query.edit_message_text("📞 Контакты:(тестовый текст)", reply_markup=back_button())
     elif data == "back":
         await query.edit_message_text(
             f"Привет, {query.from_user.first_name}! 👋\n"
