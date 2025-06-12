@@ -235,17 +235,18 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- ✈️ Авиа туры: НОВОЕ МЕНЮ ---
     elif query.data == "avia_tours":
-        await query.edit_message_text(
-            "✈️ Авиа туры:\n\nВыберите действие:",
-            f"📱 Контакт менеджера: <code>{MANAGER_CONTACT}</code>",
-            reply_markup=InlineKeyboardMarkup(countries_buttons),
-            parse_mode="HTML"
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("Самостоятельный подбор тура", url=avia_tour_link)],
-                [InlineKeyboardButton("Оставить заявку (подбор тура с менеджером)", callback_data="avia_request")],
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ])
-        )
+    await query.edit_message_text(
+        "✈️ Авиа туры:\n\n"
+        "Выберите действие:\n\n"
+        f"📱 Контакт менеджера: <code>{MANAGER_CONTACT}</code>",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Самостоятельный подбор тура", url=avia_tour_link)],
+            [InlineKeyboardButton("Оставить заявку (подбор тура с менеджером)", callback_data="avia_request")],
+            [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
+        ]),
+        parse_mode="HTML"
+    )
+
 
     # --- Оставить заявку (авиа тур, менеджер) ---
     elif query.data == "avia_request":
