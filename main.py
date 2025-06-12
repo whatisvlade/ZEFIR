@@ -8,7 +8,7 @@ from datetime import datetime
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 MANAGER_CONTACT = "+375 29 000-00-00"  # Измени на свой номер!
-REQUEST_TRIGGER = "#ЗАЯВКА"
+REQUEST_TRIGGER = "#ЗАЯВКА"            # Слово для поиска в чате
 
 app = Flask('')
 
@@ -137,7 +137,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     # --- Страница страны по визам ---
-    elif query.data.startswith("visa_"):
+    elif query.data.startswith("visa_") and not query.data.startswith("visa_request_"):
         country_code = query.data.replace("visa_", "")
         country = direction_names.get(country_code, country_code)
         await query.edit_message_text(
@@ -147,6 +147,40 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🔙 Назад", callback_data="visas")]
             ]),
             parse_mode="HTML"
+        )
+
+    # --- Заявка на визу (с удалением сообщения заявки через 3 сек) ---
+    elif query.data.startswith("visa_request_"):
+        direction = query.data.replace("visa_request_", "")
+        title = f"Виза: {direction_names.get(direction, direction)}"
+        back_btn = "visas"
+
+        user = query.from_user
+        msg = await context.bot.send_message(
+            chat_id=query.message.chat.id,
+            text=f"{REQUEST_TRIGGER} {title}\nИмя: {user.first_name} @{user.username if user.username else ''}"
+        )
+
+        async def delete_request_msg(bot, chat_id, message_id):
+            await asyncio.sleep(3)
+            try:
+                await bot.delete_message(chat_id=chat_id, message_id=message_id)
+            except Exception:
+                pass
+
+        asyncio.create_task(delete_request_msg(context.bot, query.message.chat.id, msg.message_id))
+
+        now_hour = datetime.now().hour
+        if 21 <= now_hour or now_hour < 10:
+            resp = "Заявка отправлена!\nВ рабочее время с вами свяжется менеджер."
+        else:
+            resp = "Заявка отправлена!\nОжидайте, с вами свяжется менеджер."
+
+        await query.edit_message_text(
+            resp,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Назад", callback_data=back_btn)]
+            ])
         )
 
     # --- Страница направления автобусов ---
@@ -162,22 +196,14 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
 
-    # --- ОБЩАЯ обработка заявок для виз и автобусных туров ---
-    elif query.data.startswith("request_") or query.data.startswith("visa_request_"):
-        if query.data.startswith("request_"):
-            direction = query.data.replace("request_", "")
-            title = f"Тур: {direction_names.get(direction, direction)}"
-            back_btn = "bus_tours"
-        else:
-            direction = query.data.replace("visa_request_", "")
-            title = f"Виза: {direction_names.get(direction, direction)}"
-            back_btn = "visas"
+    # --- Заявка на тур (с удалением сообщения заявки через 3 сек) ---
+    elif query.data.startswith("request_"):
+        direction = query.data.replace("request_", "")
+        title = f"Тур: {direction_names.get(direction, direction)}"
+        back_btn = "bus_tours"
 
         user = query.from_user
-
-        # Отправить заявку в чат с пользователем (ботом), удалить её через 3 сек
-        application = context.application
-        message = await context.bot.send_message(
+        msg = await context.bot.send_message(
             chat_id=query.message.chat.id,
             text=f"{REQUEST_TRIGGER} {title}\nИмя: {user.first_name} @{user.username if user.username else ''}"
         )
@@ -189,19 +215,20 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception:
                 pass
 
-        # Запустить задачу удаления сообщения заявки
-        asyncio.create_task(delete_request_msg(context.bot, query.message.chat.id, message.message_id))
+        asyncio.create_task(delete_request_msg(context.bot, query.message.chat.id, msg.message_id))
 
-        # Ответ пользователю (замена кнопок на текст)
         now_hour = datetime.now().hour
         if 21 <= now_hour or now_hour < 10:
             resp = "Заявка отправлена!\nВ рабочее время с вами свяжется менеджер."
         else:
             resp = "Заявка отправлена!\nОжидайте, с вами свяжется менеджер."
 
-        await query.edit_message_text(resp, reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔙 Назад", callback_data=back_btn)]
-        ]))
+        await query.edit_message_text(
+            resp,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Назад", callback_data=back_btn)]
+            ])
+        )
 
     # --- Заглушка для авиа туров ---
     elif query.data == "avia_tours":
@@ -227,6 +254,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Привет, {query.from_user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
+                [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
                 [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
                 [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
             ])
