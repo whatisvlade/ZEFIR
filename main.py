@@ -39,8 +39,8 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "🚌 Автобусные туры:\nВыберите направление:",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🌄🏖️ Грузия", callback_data="georgia")],
-                [InlineKeyboardButton("🌄🏖️ Абхазия", callback_data="abkhazia")],
+                [InlineKeyboardButton("🌄 Грузия", callback_data="georgia")],
+                [InlineKeyboardButton("🌄 Абхазия", callback_data="abkhazia")],
                 [InlineKeyboardButton("🏖️ Геленджик", callback_data="gelendzhik")],
                 [InlineKeyboardButton("🌄 Дагестан", callback_data="dagestan")],
                 [InlineKeyboardButton("🌉 Питер", callback_data="piter")],
@@ -152,7 +152,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text, url, manager_phone = tour_links[query.data]
         direction = query.data
         await query.edit_message_text(
-            f"{text}\n\n📱 Контакт менеджера: <code>{manager_phone}</code>",
+            f"{text}\n\n📱 Контакт менеджера: {manager_phone}",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔗 Подробнее / Программа тура", url=url)],
                 [InlineKeyboardButton("✍️ Оставить заявку", callback_data=f"apply_{direction}")],
