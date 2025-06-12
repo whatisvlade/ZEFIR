@@ -133,7 +133,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         countries_buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")])
         await query.edit_message_text(
             "🛂 Визы:\nВыберите страну для оформления визы:\n\n"
-            f"📱 Контакт менеджера: <code>{MANAGER_CONTACT}</code>",
+            f"📱 Контакт менеджера: {MANAGER_CONTACT}",
             reply_markup=InlineKeyboardMarkup(countries_buttons),
             parse_mode="HTML"
         )
@@ -237,7 +237,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "✈️ Авиа туры:\n\n"
             "Выберите действие:\n\n"
-            f"📱 Контакт менеджера: <code>{MANAGER_CONTACT}</code>",
+            f"📱 Контакт менеджера: {MANAGER_CONTACT}",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("Самостоятельный подбор тура", url=avia_tour_link)],
                 [InlineKeyboardButton("Оставить заявку (подбор тура с менеджером)", callback_data="avia_request")],
@@ -280,7 +280,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "contact":
         await query.edit_message_text(
             f"📞 Контакты:\n"
-            f"📱 Менеджер: <code>{MANAGER_CONTACT}</code>\n"
+            f"📱 Менеджер: {MANAGER_CONTACT}"
             "🏢 Адрес: г. Минск, ул. Примерная, 1\n"
             "🕓 Время работы: пн-пт 10:00–19:00, сб 11:00–16:00, вс — по договорённости",
             reply_markup=InlineKeyboardMarkup([
