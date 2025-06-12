@@ -91,6 +91,9 @@ direction_names = {
     "greece": "Греция"
 }
 
+# ---- НОВОЕ: ссылка на самостоятельный подбор тура ----
+avia_tour_link = "https://tours.example.com"  # Замените на свою ссылку
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await update.message.reply_text(
@@ -123,7 +126,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    # --- Визы, все страны списком, контакт менеджера в тексте ---
+    # --- Визы ---
     elif query.data == "visas":
         countries_buttons = [
             [InlineKeyboardButton(flag, callback_data=f"visa_{code}")] for flag, code in visa_countries
@@ -149,7 +152,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
 
-    # --- Заявка на визу (с удалением сообщения заявки через 3 сек) ---
+    # --- Заявка на визу ---
     elif query.data.startswith("visa_request_"):
         direction = query.data.replace("visa_request_", "")
         title = f"Виза: {direction_names.get(direction, direction)}"
@@ -196,7 +199,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
 
-    # --- Заявка на тур (с удалением сообщения заявки через 3 сек) ---
+    # --- Заявка на тур ---
     elif query.data.startswith("request_"):
         direction = query.data.replace("request_", "")
         title = f"Тур: {direction_names.get(direction, direction)}"
@@ -230,12 +233,44 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    # --- Заглушка для авиа туров ---
+    # --- ✈️ Авиа туры: НОВОЕ МЕНЮ ---
     elif query.data == "avia_tours":
         await query.edit_message_text(
-            "✈️ Авиа туры:\nТут будет информация об авиаперелетах (заглушка)",
+            "✈️ Авиа туры:\n\nВыберите действие:",
             reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("Самостоятельный подбор тура", url=avia_tour_link)],
+                [InlineKeyboardButton("Оставить заявку (подбор тура с менеджером)", callback_data="avia_request")],
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
+            ])
+        )
+
+    # --- Оставить заявку (авиа тур, менеджер) ---
+    elif query.data == "avia_request":
+        user = query.from_user
+        msg = await context.bot.send_message(
+            chat_id=query.message.chat.id,
+            text=f"{REQUEST_TRIGGER} Авиа тур\nИмя: {user.first_name} @{user.username if user.username else ''}"
+        )
+
+        async def delete_request_msg(bot, chat_id, message_id):
+            await asyncio.sleep(3)
+            try:
+                await bot.delete_message(chat_id=chat_id, message_id=message_id)
+            except Exception:
+                pass
+
+        asyncio.create_task(delete_request_msg(context.bot, query.message.chat.id, msg.message_id))
+
+        now_hour = datetime.now().hour
+        if 21 <= now_hour or now_hour < 10:
+            resp = "Заявка на подбор тура отправлена!\nВ рабочее время с вами свяжется менеджер."
+        else:
+            resp = "Заявка на подбор тура отправлена!\nОжидайте, с вами свяжется менеджер."
+
+        await query.edit_message_text(
+            resp,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Назад", callback_data="avia_tours")]
             ])
         )
 
