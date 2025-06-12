@@ -36,14 +36,30 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    tour_links = {
-        "georgia": (
-            "Грузия — прекрасная страна с горами, морем и вином.",
-            "https://example.com/georgia",
-            "+375291234567"
-        ),
-        "abkhazia": (
-            """<b>Предлагаем два варианта:</b>
+    if query.data == "bus_tours":
+        await query.edit_message_text(
+            "🚌 Автобусные туры:\nВыберите направление:",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🌄🏖️ Грузия", callback_data="georgia")],
+                [InlineKeyboardButton("🌄🏖️ Абхазия", callback_data="abkhazia")],
+                [InlineKeyboardButton("🏖️ Геленджик", callback_data="gelendzhik")],
+                [InlineKeyboardButton("🌄 Дагестан", callback_data="dagestan")],
+                [InlineKeyboardButton("🌉 Питер", callback_data="piter")],
+                [InlineKeyboardButton("❄️ Териберка", callback_data="teriberka")],
+                [InlineKeyboardButton("🇧🇾 Беларусь", callback_data="belarus")],
+                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
+            ])
+        )
+
+    elif query.data in ["georgia", "abkhazia", "gelendzhik", "dagestan", "piter", "teriberka", "belarus"]:
+        tour_links = {
+            "georgia": (
+                "Грузия — прекрасная страна с горами, морем и вином.",
+                "https://example.com/georgia",
+                "+375291234567"
+            ),
+            "abkhazia": (
+                """<b>Предлагаем два варианта:</b>
 1️⃣ <b>АВТОБУСНЫЙ</b>
 Едем автобусе туристического класса 🚍
 📍 По маршруту: Новополоцк - Полоцк - Минск - Бобруйск - Гомель - Адлер - Цандрипш - Гагра - Гудаута - Новый Афон
@@ -60,11 +76,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 <b>Программы тура:</b> (ссылка кнопкой ниже)
 """,
-            "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_1198337567=Y",
-            "+375292345678"
-        ),
-        "gelendzhik": (
-            """<b>Тур в Геленджик</b>
+                "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_1198337567=Y",
+                "+375292345678"
+            ),
+            "gelendzhik": (
+                """<b>Тур в Геленджик</b>
 
 🗓 <b>Даты выезда на 7 ночей:</b>
 14.06, 21.06, 28.06, 05.07, 12.07, 19.07, 26.07, 02.08, 09.08, 16.08, 23.08
@@ -74,11 +90,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 <b>Программы тура:</b> (ссылка кнопкой ниже)
 """,
-            "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_2671772459=Y",
-            "+375293456789"
-        ),
-        "dagestan": (
-            """<b>Тур в Дагестан: сердце Кавказа!</b>
+                "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_2671772459=Y",
+                "+375293456789"
+            ),
+            "dagestan": (
+                """<b>Тур в Дагестан: сердце Кавказа!</b>
 
 Подробная программа тура по ссылке (кнопкой ниже)
 🚍 Выезжаем из Минска, Могилева и Гомеля на комфортабельном автобусе туристического класса
@@ -86,22 +102,22 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ⏳ <b>Продолжительность тура:</b> 10 дней
 💰 <b>Стоимость:</b> 350$ + 150 BYN на человека
 """,
-            "https://zefirtravel.by/offers/tur-v-dagestan-serdtse-kavkaza/",
-            "+375294567890"
-        ),
-        "piter": (
-            """<b>Тур в Санкт-Петербург</b>
+                "https://zefirtravel.by/offers/tur-v-dagestan-serdtse-kavkaza/",
+                "+375294567890"
+            ),
+            "piter": (
+                """<b>Тур в Санкт-Петербург</b>
 
 Выезжаем на туристическом автобусе и забираем туристов по маршруту:
 📍 Гомель - Жлобин - Бобруйск - Минск - Бегомль - Лепель - Полоцк или Витебск - Питер
 🗓 <b>Даты выезда:</b> 26.06 и далее каждый четверг!
 <b>Программа тура:</b> (ссылка кнопкой ниже)
 """,
-            "https://zefirtravel.by/offers/tur-v-sankt-peterburg-kareliya/",
-            "+375295678901"
-        ),
-        "teriberka": (
-            """<b>Тур в Териберку!</b>
+                "https://zefirtravel.by/offers/tur-v-sankt-peterburg-kareliya/",
+                "+375295678901"
+            ),
+            "teriberka": (
+                """<b>Тур в Териберку!</b>
 
 Ознакомиться с полной программой можно по ссылке (кнопкой ниже)
 🚍 Выезжаем из Минска, Могилева, Витебска на комфортабельном автобусе туристического класса
@@ -109,11 +125,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ⏳ <b>Продолжительность тура:</b> 5 дней
 💰 <b>Стоимость:</b> 195$ + 100$ на человека
 """,
-            "https://zefirtravel.by/offers/teriberka-aysfloating-i-mogushchestvennye-kity/",
-            "+375296789012"
-        ),
-        "belarus": (
-            """Добрый день! Меня зовут Екатерина — Ваш персональный менеджер ❤️
+                "https://zefirtravel.by/offers/teriberka-aysfloating-i-mogushchestvennye-kity/",
+                "+375296789012"
+            ),
+            "belarus": (
+                """Добрый день! Меня зовут Екатерина — Ваш персональный менеджер ❤️
 
 Вас заинтересовал тур "<b>Западные сокровища Беларуси: Коссово и Ружаны</b>" 😌
 🚌 Выезжаем мы из Минска на комфортабельном автобусе
@@ -130,33 +146,17 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 <b>Подробнее:</b> (ссылка кнопкой ниже)
 """,
-            "https://zefirtravel.by/offers/zapadnye-sokrovishcha-belarusi-kossovo-i-ruzhany/",
-            "+375297890123"
-        ),
-    }
-
-    if query.data == "bus_tours":
-        await query.edit_message_text(
-            "🚌 Автобусные туры:\nВыберите направление:",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🌄🏖️ Грузия", callback_data="georgia")],
-                [InlineKeyboardButton("🌄🏖️ Абхазия", callback_data="abkhazia")],
-                [InlineKeyboardButton("🏖️ Геленджик", callback_data="gelendzhik")],
-                [InlineKeyboardButton("🌄 Дагестан", callback_data="dagestan")],
-                [InlineKeyboardButton("🌉 Питер", callback_data="piter")],
-                [InlineKeyboardButton("❄️ Териберка", callback_data="teriberka")],
-                [InlineKeyboardButton("🇧🇾 Беларусь", callback_data="belarus")],
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ])
-        )
-
-    elif query.data in tour_links.keys():
+                "https://zefirtravel.by/offers/zapadnye-sokrovishcha-belarusi-kossovo-i-ruzhany/",
+                "+375297890123"
+            ),
+        }
         text, url, manager_phone = tour_links[query.data]
+        direction = query.data
         await query.edit_message_text(
             f"{text}\n\n📱 Контакт менеджера: <code>{manager_phone}</code>",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔗 Подробнее / Программа тура", url=url)],
-                [InlineKeyboardButton("Оставить заявку", callback_data=f"apply_{query.data}")],
+                [InlineKeyboardButton("✍️ Оставить заявку", callback_data=f"apply_{direction}")],
                 [InlineKeyboardButton("🔙 Назад", callback_data="bus_tours")]
             ]),
             parse_mode="HTML"
@@ -174,7 +174,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "belarus": "Беларусь"
         }.get(direction, "Неизвестно")
         user = query.from_user
-        await context.bot.send_message(
+        sent_message = await context.bot.send_message(
             chat_id=query.message.chat.id,
             text=(
                 f"#заявка\n"
@@ -184,6 +184,14 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ),
             parse_mode="HTML"
         )
+        await asyncio.sleep(5)
+        try:
+            await context.bot.delete_message(
+                chat_id=sent_message.chat_id,
+                message_id=sent_message.message_id
+            )
+        except Exception:
+            pass  # если нет прав — не критично
         await query.answer("Спасибо! Ваша заявка отправлена!", show_alert=True)
 
     elif query.data == "avia_tours":
