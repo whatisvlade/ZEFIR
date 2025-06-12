@@ -102,7 +102,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
             [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
             [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
-            [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
+            [InlineKeyboardButton("📞 Контакты", callback_data="contact")]
         ])
     )
 
@@ -276,12 +276,16 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- Контакт ---
     elif query.data == "contact":
-        await query.edit_message_text(
-            f"📞 Связаться:\nТелефон: {MANAGER_CONTACT}\nEmail: info@zefir.travel",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ])
-        )
+    await query.edit_message_text(
+        f"📞 Контакты:\n"
+        f"📱 Менеджер: <code>{MANAGER_CONTACT}</code>\n"
+        "🏢 Адрес: г. Минск, ул. Примерная, 1\n"
+        "🕓 Время работы: пн-пт 10:00–19:00, сб 11:00–16:00, вс — по договорённости",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
+        ]),
+        parse_mode="HTML"
+    )
 
     # --- Назад в главное меню ---
     elif query.data == "back_to_menu":
