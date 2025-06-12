@@ -11,7 +11,7 @@ REQUEST_TRIGGER = "#ЗАЯВКА"
 
 # Все номера менеджеров для удобного редактирования:
 MANAGER_CONTACTS = {
-    "default": "+375 29 000-00-00",  # Общий по умолчанию/на главную/на контакты
+    "default": "+375290000000",  # Общий по умолчанию/на главную/на контакты
     "georgia": "+375291234567",
     "abkhazia": "+375292345678",
     "gelendzhik": "+375293456789",
@@ -151,7 +151,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         countries_buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")])
         await query.edit_message_text(
             "🛂 Визы:\nВыберите страну для оформления визы:\n\n"
-            f"📱 Контакт менеджера: <code>{manager_phone}</code>",
+            f"📱 Контакт менеджера: {manager_phone}",
             reply_markup=InlineKeyboardMarkup(countries_buttons),
             parse_mode="HTML"
         )
@@ -233,7 +233,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "✈️ Авиа туры:\n\n"
             "Выберите действие:\n\n"
-            f"📱 Контакт менеджера: <code>{manager_phone}</code>",
+            f"📱 Контакт менеджера: {manager_phone}",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("Самостоятельный подбор тура", url=avia_tour_link)],
                 [InlineKeyboardButton("Оставить заявку (подбор тура с менеджером)", callback_data="avia_request")],
@@ -273,7 +273,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         manager_phone = MANAGER_CONTACTS.get("default")
         await query.edit_message_text(
             f"📞 Контакты:\n"
-            f"📱 Менеджер: <code>{manager_phone}</code>\n"
+            f"📱 Общий номер: {manager_phone}"
             "🏢 Адрес: г. Минск, ул. Примерная, 1\n"
             "🕓 Время работы: пн-пт 10:00–19:00, сб 11:00–16:00, вс — по договорённости",
             reply_markup=InlineKeyboardMarkup([
