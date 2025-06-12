@@ -23,7 +23,6 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# Список стран для виз
 visa_countries = [
     ("🇮🇹 Италия", "italy"),
     ("🇪🇸 Испания", "spain"),
@@ -34,7 +33,6 @@ visa_countries = [
     ("🇬🇷 Греция", "greece")
 ]
 
-# Данные автобусных туров
 tour_links = {
     "georgia": (
         "Грузия — прекрасная страна с горами, морем и вином.",
@@ -140,6 +138,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Привет, {user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
+            [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
             [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
             [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
         ])
@@ -149,13 +148,12 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    # Автобусные туры
     if query.data == "bus_tours":
         await query.edit_message_text(
             "🚌 Автобусные туры:\nВыберите направление:",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🌄 Грузия", callback_data="georgia")],
-                [InlineKeyboardButton("🌄 Абхазия", callback_data="abkhazia")],
+                [InlineKeyboardButton("🌄🏖️ Грузия", callback_data="georgia")],
+                [InlineKeyboardButton("🌄🏖️ Абхазия", callback_data="abkhazia")],
                 [InlineKeyboardButton("🏖️ Геленджик", callback_data="gelendzhik")],
                 [InlineKeyboardButton("🌄 Дагестан", callback_data="dagestan")],
                 [InlineKeyboardButton("🌉 Питер", callback_data="piter")],
@@ -202,13 +200,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=query.message.chat.id,
             text=f"{REQUEST_TRIGGER} Тур: {direction_name}\nИмя: {user.first_name} @{user.username if user.username else ''}"
         )
-        # Удаляем через 3 секунды
         await asyncio.sleep(3)
         try:
             await sent.delete()
         except:
             pass
-        # Отправка клиенту ответа в зависимости от времени
         now_hour = datetime.now().hour
         if 21 <= now_hour or now_hour < 10:
             resp = "Заявка отправлена!\nВ рабочее время с вами свяжется менеджер."
@@ -218,7 +214,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("🔙 Назад", callback_data="bus_tours")]
         ]))
 
-    # Авиа-туры
     elif query.data == "avia_tours":
         await query.edit_message_text(
             "✈️ Авиа туры:\nТут будет информация об авиаперелетах (заглушка)",
@@ -227,7 +222,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    # Визы
     elif query.data == "visas":
         await query.edit_message_text(
             "🛂 Визы:\nВыберите страну:",
@@ -303,6 +297,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Привет, {query.from_user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
+                [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
                 [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
                 [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
             ])
