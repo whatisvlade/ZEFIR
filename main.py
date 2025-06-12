@@ -8,7 +8,7 @@ from datetime import datetime
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 MANAGER_CONTACT = "+375 29 000-00-00"  # Измени на свой номер!
-REQUEST_TRIGGER = "#ЗАЯВКА"            # Слово для поиска в чате
+REQUEST_TRIGGER = "#ЗАЯВКА"  # Слово для поиска в чате
 
 app = Flask('')
 
@@ -42,32 +42,32 @@ tour_links = {
         "+375291234567"
     ),
     "abkhazia": (
-        """<b>Абхазия: Два варианта!</b> 1️⃣ <b>АВТОБУСНЫЙ</b> ... 2️⃣ <b>ЖД</b> ... <b>Программы тура:</b> (ссылка кнопкой ниже) """,
+        "<b>Абхазия: Два варианта!</b> 1️⃣ <b>АВТОБУСНЫЙ</b> ... 2️⃣ <b>ЖД</b> ... <b>Программы тура:</b> (ссылка кнопкой ниже) ",
         "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_1198337567=Y",
         "+375292345678"
     ),
     "gelendzhik": (
-        """<b>Тур в Геленджик</b> <b>Даты:</b> ... <b>Программы тура:</b> (ссылка кнопкой ниже) """,
+        "<b>Тур в Геленджик</b> <b>Даты:</b> ... <b>Программы тура:</b> (ссылка кнопкой ниже) ",
         "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_2671772459=Y",
         "+375293456789"
     ),
     "dagestan": (
-        """<b>Тур в Дагестан</b> Даты: ... """,
+        "<b>Тур в Дагестан</b> Даты: ... ",
         "https://zefirtravel.by/offers/tur-v-dagestan-serdtse-kavkaza/",
         "+375294567890"
     ),
     "piter": (
-        """<b>Тур в Санкт-Петербург</b> <b>Даты:</b> ... <b>Программа тура:</b> (ссылка кнопкой ниже) """,
+        "<b>Тур в Санкт-Петербург</b> <b>Даты:</b> ... <b>Программа тура:</b> (ссылка кнопкой ниже) ",
         "https://zefirtravel.by/offers/tur-v-sankt-peterburg-kareliya/",
         "+375295678901"
     ),
     "teriberka": (
-        """<b>Тур в Териберку!</b> <b>Даты:</b> ... """,
+        "<b>Тур в Териберку!</b> <b>Даты:</b> ... ",
         "https://zefirtravel.by/offers/teriberka-aysfloating-i-mogushchestvennye-kity/",
         "+375296789012"
     ),
     "belarus": (
-        """<b>Западные сокровища Беларуси: Коссово и Ружаны</b> Даты: ... <b>Подробнее:</b> (ссылка кнопкой ниже) """,
+        "<b>Западные сокровища Беларуси: Коссово и Ружаны</b> Даты: ... <b>Подробнее:</b> (ссылка кнопкой ниже) ",
         "https://zefirtravel.by/offers/zapadnye-sokrovishcha-belarusi-kossovo-i-ruzhany/",
         "+375297890123"
     ),
@@ -107,7 +107,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    # --- Автобусные туры ---
+    # Автобусные туры
     if query.data == "bus_tours":
         await query.edit_message_text(
             "🚌 Автобусные туры:\nВыберите направление:",
@@ -123,10 +123,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    # --- Визы, все страны списком, контакт менеджера в тексте ---
+    # Визы, все страны списком, контакт менеджера в тексте
     elif query.data == "visas":
         countries_buttons = [
-            [InlineKeyboardButton(flag, callback_data=f"visa_{code}")] for flag, code in visa_countries
+            [InlineKeyboardButton(flag, callback_data=f"visa_{code}")]
+            for flag, code in visa_countries
         ]
         countries_buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")])
         await query.edit_message_text(
@@ -136,7 +137,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
 
-    # --- Страница страны по визам ---
+    # Страница страны по визам
     elif query.data.startswith("visa_"):
         country_code = query.data.replace("visa_", "")
         country = direction_names.get(country_code, country_code)
@@ -149,7 +150,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
 
-    # --- Страница направления автобусов ---
+    # Страница направления автобусов
     elif query.data in tour_links.keys():
         text, url, manager_phone = tour_links[query.data]
         await query.edit_message_text(
@@ -162,7 +163,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
 
-    # --- ОБЩАЯ обработка заявок для виз и автобусных туров ---
+    # ОБЩАЯ обработка заявок для виз и автобусных туров
     elif query.data.startswith("request_") or query.data.startswith("visa_request_"):
         if query.data.startswith("request_"):
             direction = query.data.replace("request_", "")
@@ -175,14 +176,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         user = query.from_user
 
-        # Отправить заявку менеджеру (сюда же для теста, можно на отдельный chat_id)
-        MANAGER_CHAT_ID = os.getenv("MANAGER_CHAT_ID", None)  # Вставь реальный chat_id менеджера!
-        if MANAGER_CHAT_ID:
-           await context.bot.send_message(
-               chat_id=MANAGER_CHAT_ID,
-                text=f"{REQUEST_TRIGGER} {title}\nИмя: {user.first_name} @{user.username if user.username else ''}"
-           )
-
+        # Отправить заявку менеджеру (в тот же чат)
+        await context.bot.send_message(
+            chat_id=query.message.chat.id,
+            text=f"{REQUEST_TRIGGER} {title}\nИмя: {user.first_name} @{user.username if user.username else ''}"
+        )
 
         # Ответ пользователю
         now_hour = datetime.now().hour
@@ -191,11 +189,14 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             resp = "Заявка отправлена!\nОжидайте, с вами свяжется менеджер."
 
-        await query.edit_message_text(resp, reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔙 Назад", callback_data=back_btn)]
-        ]))
+        await query.edit_message_text(
+            resp,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Назад", callback_data=back_btn)]
+            ])
+        )
 
-    # --- Заглушка для авиа туров ---
+    # Заглушка для авиа туров
     elif query.data == "avia_tours":
         await query.edit_message_text(
             "✈️ Авиа туры:\nТут будет информация об авиаперелетах (заглушка)",
@@ -204,7 +205,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    # --- Контакт ---
+    # Контакт
     elif query.data == "contact":
         await query.edit_message_text(
             f"📞 Связаться:\nТелефон: {MANAGER_CONTACT}\nEmail: info@zefir.travel",
@@ -213,7 +214,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    # --- Назад в главное меню ---
+    # Назад в главное меню
     elif query.data == "back_to_menu":
         await query.edit_message_text(
             f"Привет, {query.from_user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
