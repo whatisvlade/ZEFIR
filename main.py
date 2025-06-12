@@ -140,7 +140,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Привет, {user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
-            [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
             [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
             [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
         ])
@@ -155,8 +154,8 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "🚌 Автобусные туры:\nВыберите направление:",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🌄🏖️ Грузия", callback_data="georgia")],
-                [InlineKeyboardButton("🌄🏖️ Абхазия", callback_data="abkhazia")],
+                [InlineKeyboardButton("🌄 Грузия", callback_data="georgia")],
+                [InlineKeyboardButton("🌄 Абхазия", callback_data="abkhazia")],
                 [InlineKeyboardButton("🏖️ Геленджик", callback_data="gelendzhik")],
                 [InlineKeyboardButton("🌄 Дагестан", callback_data="dagestan")],
                 [InlineKeyboardButton("🌉 Питер", callback_data="piter")],
