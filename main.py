@@ -1,12 +1,15 @@
 import asyncio
 import os
-from datetime import datetime, time as dtime
 from flask import Flask
 from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from datetime import datetime
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+MANAGER_CONTACT = "+375 29 000-00-00"  # Измени на свой номер!
+REQUEST_TRIGGER = "#ЗАЯВКА"            # Слово для поиска в чате
+
 app = Flask('')
 
 @app.route('/')
@@ -20,7 +23,19 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-TOUR_LINKS = {
+# Список стран для виз
+visa_countries = [
+    ("🇮🇹 Италия", "italy"),
+    ("🇪🇸 Испания", "spain"),
+    ("🇵🇱 Польша", "poland"),
+    ("🇭🇺 Венгрия", "hungary"),
+    ("🇫🇷 Франция", "france"),
+    ("🇧🇬 Болгария", "bulgaria"),
+    ("🇬🇷 Греция", "greece")
+]
+
+# Данные автобусных туров
+tour_links = {
     "georgia": (
         "Грузия — прекрасная страна с горами, морем и вином.",
         "https://example.com/georgia",
@@ -135,6 +150,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
+    # Автобусные туры
     if query.data == "bus_tours":
         await query.edit_message_text(
             "🚌 Автобусные туры:\nВыберите направление:",
@@ -149,33 +165,61 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
             ])
         )
-    elif query.data in TOUR_LINKS:
-        text, url, manager_phone = TOUR_LINKS[query.data]
-        direction = query.data
+
+    elif query.data in tour_links.keys():
+        text, url, manager_phone = tour_links[query.data]
+        direction_name = {
+            "georgia": "Грузия",
+            "abkhazia": "Абхазия",
+            "gelendzhik": "Геленджик",
+            "dagestan": "Дагестан",
+            "piter": "Питер",
+            "teriberka": "Териберка",
+            "belarus": "Беларусь"
+        }[query.data]
         await query.edit_message_text(
-            f"{text}\n\n📱 Контакт менеджера: {manager_phone}",
+            f"{text}\n\n📱 Контакт менеджера: <code>{manager_phone}</code>",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔗 Подробнее / Программа тура", url=url)],
-                [InlineKeyboardButton("✍️ Оставить заявку", callback_data=f"apply_{direction}")],
+                [InlineKeyboardButton("Оставить заявку", callback_data=f"request_{query.data}")],
                 [InlineKeyboardButton("🔙 Назад", callback_data="bus_tours")]
             ]),
             parse_mode="HTML"
         )
-    elif query.data.startswith("apply_"):
-        direction = query.data.replace("apply_", "")
-        # Шаг 1: Отправляем "триггерное" сообщение
-        sent = await query.message.reply_text(f"Заявка: {direction}", quote=True)
-        await asyncio.sleep(2.5)  # Ждем 2.5 сек (или сколько нужно)
-        # Удаляем заявку пользователя
-        await sent.delete()
-        # Время в Минске (GMT+3)
-        now = datetime.now().time()
-        # 10:00–21:00 -> сразу связывается
-        if dtime(10, 0) <= now <= dtime(21, 0):
-            text = "Заявка отправлена. Ожидайте, с вами свяжется менеджер."
+
+    elif query.data.startswith("request_"):
+        direction = query.data.replace("request_", "")
+        direction_name = {
+            "georgia": "Грузия",
+            "abkhazia": "Абхазия",
+            "gelendzhik": "Геленджик",
+            "dagestan": "Дагестан",
+            "piter": "Питер",
+            "teriberka": "Териберка",
+            "belarus": "Беларусь"
+        }.get(direction, direction)
+        user = query.from_user
+        sent = await context.bot.send_message(
+            chat_id=query.message.chat.id,
+            text=f"{REQUEST_TRIGGER} Тур: {direction_name}\nИмя: {user.first_name} @{user.username if user.username else ''}"
+        )
+        # Удаляем через 3 секунды
+        await asyncio.sleep(3)
+        try:
+            await sent.delete()
+        except:
+            pass
+        # Отправка клиенту ответа в зависимости от времени
+        now_hour = datetime.now().hour
+        if 21 <= now_hour or now_hour < 10:
+            resp = "Заявка отправлена!\nВ рабочее время с вами свяжется менеджер."
         else:
-            text = "Заявка отправлена. В рабочее время с вами свяжется менеджер."
-        await query.message.reply_text(text)
+            resp = "Заявка отправлена!\nОжидайте, с вами свяжется менеджер."
+        await query.edit_message_text(resp, reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 Назад", callback_data="bus_tours")]
+        ]))
+
+    # Авиа-туры
     elif query.data == "avia_tours":
         await query.edit_message_text(
             "✈️ Авиа туры:\nТут будет информация об авиаперелетах (заглушка)",
@@ -183,20 +227,78 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
             ])
         )
+
+    # Визы
     elif query.data == "visas":
         await query.edit_message_text(
-            "🛂 Визы:\nТут будет информация по визам (заглушка)",
+            "🛂 Визы:\nВыберите страну:",
             reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(flag, f"visa_{code}") for flag, code in visa_countries[:4]],
+                [InlineKeyboardButton(flag, f"visa_{code}") for flag, code in visa_countries[4:]],
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
             ])
         )
+    elif query.data.startswith("visa_"):
+        country_code = query.data.replace("visa_", "")
+        country_names = {
+            "italy": "Италия",
+            "spain": "Испания",
+            "poland": "Польша",
+            "hungary": "Венгрия",
+            "france": "Франция",
+            "bulgaria": "Болгария",
+            "greece": "Греция"
+        }
+        country = country_names.get(country_code, country_code)
+        await query.edit_message_text(
+            f"🛂 <b>Виза в {country}</b>\n\n"
+            f"📱 Контакт менеджера: <code>{MANAGER_CONTACT}</code>\n\n"
+            f"Хотите оставить заявку на визу в {country}?",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("Оставить заявку", callback_data=f"visa_request_{country_code}")],
+                [InlineKeyboardButton("🔙 Назад", callback_data="visas")]
+            ]),
+            parse_mode="HTML"
+        )
+    elif query.data.startswith("visa_request_"):
+        country_code = query.data.replace("visa_request_", "")
+        country_names = {
+            "italy": "Италия",
+            "spain": "Испания",
+            "poland": "Польша",
+            "hungary": "Венгрия",
+            "france": "Франция",
+            "bulgaria": "Болгария",
+            "greece": "Греция"
+        }
+        country = country_names.get(country_code, country_code)
+        user = query.from_user
+        sent = await context.bot.send_message(
+            chat_id=query.message.chat.id,
+            text=f"{REQUEST_TRIGGER} Виза: {country}\nИмя: {user.first_name} @{user.username if user.username else ''}"
+        )
+        await asyncio.sleep(3)
+        try:
+            await sent.delete()
+        except:
+            pass
+        now_hour = datetime.now().hour
+        if 21 <= now_hour or now_hour < 10:
+            resp = "Заявка отправлена!\nВ рабочее время с вами свяжется менеджер."
+        else:
+            resp = "Заявка отправлена!\nОжидайте, с вами свяжется менеджер."
+        await query.edit_message_text(resp, reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 Назад", callback_data="visas")]
+        ]))
+
     elif query.data == "contact":
         await query.edit_message_text(
-            "📞 Связаться:\nТелефон: +375 29 000-00-00\nEmail: info@zefir.travel",
+            f"📞 Связаться:\nТелефон: {MANAGER_CONTACT}\nEmail: info@zefir.travel",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
             ])
         )
+
     elif query.data == "back_to_menu":
         await query.edit_message_text(
             f"Привет, {query.from_user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
