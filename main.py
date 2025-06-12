@@ -23,7 +23,7 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# Список стран для виз
+# Список стран для виз (вертикально)
 visa_countries = [
     ("🇮🇹 Италия", "italy"),
     ("🇪🇸 Испания", "spain"),
@@ -31,7 +31,7 @@ visa_countries = [
     ("🇭🇺 Венгрия", "hungary"),
     ("🇫🇷 Франция", "france"),
     ("🇧🇬 Болгария", "bulgaria"),
-    ("🇬🇷 Греция", "greece")
+    ("🇬🇷 Греция", "greece"),
 ]
 
 # Данные автобусных туров
@@ -226,11 +226,10 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
         )
 
-    # Визы
+    # Визы (список стран + контакт менеджера)
     elif query.data == "visas":
-        # Кнопки стран идут вертикально
         country_buttons = [
-            [InlineKeyboardButton(flag, f"visa_{code}")]
+            [InlineKeyboardButton(flag, callback_data=f"visa_{code}")]
             for flag, code in visa_countries
         ]
         country_buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")])
@@ -243,7 +242,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup(country_buttons),
             parse_mode="HTML"
         )
-
+    # Страна по визе: Оставить заявку / Назад (аналогично турам, без контакта)
     elif query.data.startswith("visa_"):
         country_code = query.data.replace("visa_", "")
         country_names = {
@@ -257,15 +256,14 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         country = country_names.get(country_code, country_code)
         await query.edit_message_text(
-            f"🛂 <b>Виза в {country}</b>\n\n"
-            f"Хотите оставить заявку на визу?",
+            f"🛂 <b>Виза в {country}</b>\n\nХотите оставить заявку на визу в {country}?",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("Оставить заявку", callback_data=f"visa_request_{country_code}")],
                 [InlineKeyboardButton("🔙 Назад", callback_data="visas")]
             ]),
             parse_mode="HTML"
         )
-
+    # Оставить заявку на визу (аналогично турам)
     elif query.data.startswith("visa_request_"):
         country_code = query.data.replace("visa_request_", "")
         country_names = {
@@ -326,4 +324,5 @@ async def main():
 if __name__ == '__main__':
     import nest_asyncio
     nest_asyncio.apply()
+
     asyncio.run(main())
