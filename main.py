@@ -227,7 +227,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Привет, {query.from_user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
-                [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
                 [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
                 [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
             ])
