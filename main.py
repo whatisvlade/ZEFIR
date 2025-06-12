@@ -1,12 +1,12 @@
 import asyncio
 import os
+from datetime import datetime, time as dtime
 from flask import Flask
 from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
 app = Flask('')
 
 @app.route('/')
@@ -20,45 +20,14 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    await update.message.reply_text(
-        f"Привет, {user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
-            [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
-            [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
-        ])
-    )
-
-async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    if query.data == "bus_tours":
-        await query.edit_message_text(
-            "🚌 Автобусные туры:\nВыберите направление:",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🌄 Грузия", callback_data="georgia")],
-                [InlineKeyboardButton("🌄 Абхазия", callback_data="abkhazia")],
-                [InlineKeyboardButton("🏖️ Геленджик", callback_data="gelendzhik")],
-                [InlineKeyboardButton("🌄 Дагестан", callback_data="dagestan")],
-                [InlineKeyboardButton("🌉 Питер", callback_data="piter")],
-                [InlineKeyboardButton("❄️ Териберка", callback_data="teriberka")],
-                [InlineKeyboardButton("🇧🇾 Беларусь", callback_data="belarus")],
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ])
-        )
-
-    elif query.data in ["georgia", "abkhazia", "gelendzhik", "dagestan", "piter", "teriberka", "belarus"]:
-        tour_links = {
-            "georgia": (
-                "Грузия — прекрасная страна с горами, морем и вином.",
-                "https://example.com/georgia",
-                "+375291234567"
-            ),
-            "abkhazia": (
-                """<b>Предлагаем два варианта:</b>
+TOUR_LINKS = {
+    "georgia": (
+        "Грузия — прекрасная страна с горами, морем и вином.",
+        "https://example.com/georgia",
+        "+375291234567"
+    ),
+    "abkhazia": (
+        """<b>Предлагаем два варианта:</b>
 1️⃣ <b>АВТОБУСНЫЙ</b>
 Едем автобусе туристического класса 🚍
 📍 По маршруту: Новополоцк - Полоцк - Минск - Бобруйск - Гомель - Адлер - Цандрипш - Гагра - Гудаута - Новый Афон
@@ -75,11 +44,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 <b>Программы тура:</b> (ссылка кнопкой ниже)
 """,
-                "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_1198337567=Y",
-                "+375292345678"
-            ),
-            "gelendzhik": (
-                """<b>Тур в Геленджик</b>
+        "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_1198337567=Y",
+        "+375292345678"
+    ),
+    "gelendzhik": (
+        """<b>Тур в Геленджик</b>
 
 🗓 <b>Даты выезда на 7 ночей:</b>
 14.06, 21.06, 28.06, 05.07, 12.07, 19.07, 26.07, 02.08, 09.08, 16.08, 23.08
@@ -89,11 +58,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 <b>Программы тура:</b> (ссылка кнопкой ниже)
 """,
-                "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_2671772459=Y",
-                "+375293456789"
-            ),
-            "dagestan": (
-                """<b>Тур в Дагестан: сердце Кавказа!</b>
+        "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_2671772459=Y",
+        "+375293456789"
+    ),
+    "dagestan": (
+        """<b>Тур в Дагестан: сердце Кавказа!</b>
 
 Подробная программа тура по ссылке (кнопкой ниже)
 🚍 Выезжаем из Минска, Могилева и Гомеля на комфортабельном автобусе туристического класса
@@ -101,22 +70,22 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ⏳ <b>Продолжительность тура:</b> 10 дней
 💰 <b>Стоимость:</b> 350$ + 150 BYN на человека
 """,
-                "https://zefirtravel.by/offers/tur-v-dagestan-serdtse-kavkaza/",
-                "+375294567890"
-            ),
-            "piter": (
-                """<b>Тур в Санкт-Петербург</b>
+        "https://zefirtravel.by/offers/tur-v-dagestan-serdtse-kavkaza/",
+        "+375294567890"
+    ),
+    "piter": (
+        """<b>Тур в Санкт-Петербург</b>
 
 Выезжаем на туристическом автобусе и забираем туристов по маршруту:
 📍 Гомель - Жлобин - Бобруйск - Минск - Бегомль - Лепель - Полоцк или Витебск - Питер
 🗓 <b>Даты выезда:</b> 26.06 и далее каждый четверг!
 <b>Программа тура:</b> (ссылка кнопкой ниже)
 """,
-                "https://zefirtravel.by/offers/tur-v-sankt-peterburg-kareliya/",
-                "+375295678901"
-            ),
-            "teriberka": (
-                """<b>Тур в Териберку!</b>
+        "https://zefirtravel.by/offers/tur-v-sankt-peterburg-kareliya/",
+        "+375295678901"
+    ),
+    "teriberka": (
+        """<b>Тур в Териберку!</b>
 
 Ознакомиться с полной программой можно по ссылке (кнопкой ниже)
 🚍 Выезжаем из Минска, Могилева, Витебска на комфортабельном автобусе туристического класса
@@ -124,11 +93,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ⏳ <b>Продолжительность тура:</b> 5 дней
 💰 <b>Стоимость:</b> 195$ + 100$ на человека
 """,
-                "https://zefirtravel.by/offers/teriberka-aysfloating-i-mogushchestvennye-kity/",
-                "+375296789012"
-            ),
-            "belarus": (
-                """Добрый день! Меня зовут Екатерина — Ваш персональный менеджер ❤️
+        "https://zefirtravel.by/offers/teriberka-aysfloating-i-mogushchestvennye-kity/",
+        "+375296789012"
+    ),
+    "belarus": (
+        """Добрый день! Меня зовут Екатерина — Ваш персональный менеджер ❤️
 
 Вас заинтересовал тур "<b>Западные сокровища Беларуси: Коссово и Ружаны</b>" 😌
 🚌 Выезжаем мы из Минска на комфортабельном автобусе
@@ -145,11 +114,43 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 <b>Подробнее:</b> (ссылка кнопкой ниже)
 """,
-                "https://zefirtravel.by/offers/zapadnye-sokrovishcha-belarusi-kossovo-i-ruzhany/",
-                "+375297890123"
-            ),
-        }
-        text, url, manager_phone = tour_links[query.data]
+        "https://zefirtravel.by/offers/zapadnye-sokrovishcha-belarusi-kossovo-i-ruzhany/",
+        "+375297890123"
+    ),
+}
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    await update.message.reply_text(
+        f"Привет, {user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
+            [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
+            [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
+            [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
+        ])
+    )
+
+async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "bus_tours":
+        await query.edit_message_text(
+            "🚌 Автобусные туры:\nВыберите направление:",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🌄🏖️ Грузия", callback_data="georgia")],
+                [InlineKeyboardButton("🌄🏖️ Абхазия", callback_data="abkhazia")],
+                [InlineKeyboardButton("🏖️ Геленджик", callback_data="gelendzhik")],
+                [InlineKeyboardButton("🌄 Дагестан", callback_data="dagestan")],
+                [InlineKeyboardButton("🌉 Питер", callback_data="piter")],
+                [InlineKeyboardButton("❄️ Териберка", callback_data="teriberka")],
+                [InlineKeyboardButton("🇧🇾 Беларусь", callback_data="belarus")],
+                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
+            ])
+        )
+    elif query.data in TOUR_LINKS:
+        text, url, manager_phone = TOUR_LINKS[query.data]
         direction = query.data
         await query.edit_message_text(
             f"{text}\n\n📱 Контакт менеджера: {manager_phone}",
@@ -160,39 +161,28 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]),
             parse_mode="HTML"
         )
-
     elif query.data.startswith("apply_"):
         direction = query.data.replace("apply_", "")
-        direction_name = {
-            "georgia": "Грузия",
-            "abkhazia": "Абхазия",
-            "gelendzhik": "Геленджик",
-            "dagestan": "Дагестан",
-            "piter": "Питер",
-            "teriberka": "Териберка",
-            "belarus": "Беларусь"
-        }.get(direction, "Неизвестно")
-        user = query.from_user
-        sent_message = await context.bot.send_message(
-            chat_id=query.message.chat.id,
-            text=(
-                f"#заявка\n"
-                f"Тур: <b>{direction_name}</b>\n"
-                f"Пользователь: <b>{user.first_name}</b> (@{user.username})\n"
-                f"ID: <code>{user.id}</code>"
-            ),
-            parse_mode="HTML"
+        # Шаг 1: Отправляем "триггерное" сообщение
+        sent = await query.message.reply_text(f"Заявка: {direction}", quote=True)
+        await asyncio.sleep(2.5)  # Ждем 2.5 сек (или сколько нужно)
+        # Удаляем заявку пользователя
+        await sent.delete()
+        # Время в Минске (GMT+3)
+        now = datetime.now().time()
+        # 10:00–21:00 -> сразу связывается
+        if dtime(10, 0) <= now <= dtime(21, 0):
+            text = "Заявка отправлена. Ожидайте, с вами свяжется менеджер."
+        else:
+            text = "Заявка отправлена. В рабочее время с вами свяжется менеджер."
+        await query.message.reply_text(text)
+    elif query.data == "avia_tours":
+        await query.edit_message_text(
+            "✈️ Авиа туры:\nТут будет информация об авиаперелетах (заглушка)",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
+            ])
         )
-        await asyncio.sleep(3)
-        try:
-            await context.bot.delete_message(
-                chat_id=sent_message.chat_id,
-                message_id=sent_message.message_id
-            )
-        except Exception:
-            pass  # если нет прав — не критично
-        await query.answer("Спасибо! Ваша заявка отправлена!", show_alert=True)
-
     elif query.data == "visas":
         await query.edit_message_text(
             "🛂 Визы:\nТут будет информация по визам (заглушка)",
@@ -200,7 +190,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
             ])
         )
-
     elif query.data == "contact":
         await query.edit_message_text(
             "📞 Связаться:\nТелефон: +375 29 000-00-00\nEmail: info@zefir.travel",
@@ -208,13 +197,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
             ])
         )
-
     elif query.data == "back_to_menu":
         await query.edit_message_text(
             f"Привет, {query.from_user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
-                [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
                 [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
                 [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
             ])
