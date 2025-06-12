@@ -42,49 +42,32 @@ tour_links = {
         "+375291234567"
     ),
     "abkhazia": (
-        """<b>Абхазия: Два варианта!</b>
-1️⃣ <b>АВТОБУСНЫЙ</b> ...
-2️⃣ <b>ЖД</b> ...
-<b>Программы тура:</b> (ссылка кнопкой ниже)
-""",
+        """<b>Абхазия: Два варианта!</b> 1️⃣ <b>АВТОБУСНЫЙ</b> ... 2️⃣ <b>ЖД</b> ... <b>Программы тура:</b> (ссылка кнопкой ниже) """,
         "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_1198337567=Y",
         "+375292345678"
     ),
     "gelendzhik": (
-        """<b>Тур в Геленджик</b>
-<b>Даты:</b> ...
-<b>Программы тура:</b> (ссылка кнопкой ниже)
-""",
+        """<b>Тур в Геленджик</b> <b>Даты:</b> ... <b>Программы тура:</b> (ссылка кнопкой ниже) """,
         "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_2671772459=Y",
         "+375293456789"
     ),
     "dagestan": (
-        """<b>Тур в Дагестан</b>
-Даты: ...
-""",
+        """<b>Тур в Дагестан</b> Даты: ... """,
         "https://zefirtravel.by/offers/tur-v-dagestan-serdtse-kavkaza/",
         "+375294567890"
     ),
     "piter": (
-        """<b>Тур в Санкт-Петербург</b>
-<b>Даты:</b> ...
-<b>Программа тура:</b> (ссылка кнопкой ниже)
-""",
+        """<b>Тур в Санкт-Петербург</b> <b>Даты:</b> ... <b>Программа тура:</b> (ссылка кнопкой ниже) """,
         "https://zefirtravel.by/offers/tur-v-sankt-peterburg-kareliya/",
         "+375295678901"
     ),
     "teriberka": (
-        """<b>Тур в Териберку!</b>
-<b>Даты:</b> ...
-""",
+        """<b>Тур в Териберку!</b> <b>Даты:</b> ... """,
         "https://zefirtravel.by/offers/teriberka-aysfloating-i-mogushchestvennye-kity/",
         "+375296789012"
     ),
     "belarus": (
-        """<b>Западные сокровища Беларуси: Коссово и Ружаны</b>
-Даты: ...
-<b>Подробнее:</b> (ссылка кнопкой ниже)
-""",
+        """<b>Западные сокровища Беларуси: Коссово и Ружаны</b> Даты: ... <b>Подробнее:</b> (ссылка кнопкой ниже) """,
         "https://zefirtravel.by/offers/zapadnye-sokrovishcha-belarusi-kossovo-i-ruzhany/",
         "+375297890123"
     ),
@@ -143,7 +126,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- Визы, все страны списком, контакт менеджера в тексте ---
     elif query.data == "visas":
         countries_buttons = [
-            [InlineKeyboardButton(flag, f"visa_{code}")] for flag, code in visa_countries
+            [InlineKeyboardButton(flag, callback_data=f"visa_{code}")] for flag, code in visa_countries
         ]
         countries_buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")])
         await query.edit_message_text(
