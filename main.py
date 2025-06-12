@@ -203,13 +203,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=query.message.chat.id,
             text=f"{REQUEST_TRIGGER} Тур: {direction_name}\nИмя: {user.first_name} @{user.username if user.username else ''}"
         )
-        # Удаляем через 3 секунды
         await asyncio.sleep(3)
         try:
             await sent.delete()
         except:
             pass
-        # Отправка клиенту ответа в зависимости от времени
         now_hour = datetime.now().hour
         if 21 <= now_hour or now_hour < 10:
             resp = "Заявка отправлена!\nВ рабочее время с вами свяжется менеджер."
@@ -230,17 +228,22 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Визы
     elif query.data == "visas":
+        # Кнопки стран идут вертикально
+        country_buttons = [
+            [InlineKeyboardButton(flag, f"visa_{code}")]
+            for flag, code in visa_countries
+        ]
+        country_buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")])
+
+        countries_text = ', '.join([flag for flag, code in visa_countries])
         await query.edit_message_text(
-            "🛂 Визы:\nВыберите страну:",
-            reply_markup=InlineKeyboardMarkup(
-                [
-                    [InlineKeyboardButton(flag, callback_data=f"visa_{code}")]
-                    for flag, code in visa_countries
-                ] + [
-                    [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-                ]
-            )
+            f"🛂 Визы:\nВыберите страну оформления:\n\n"
+            f"{countries_text}\n\n"
+            f"📞 Контакт менеджера: <code>{MANAGER_CONTACT}</code>",
+            reply_markup=InlineKeyboardMarkup(country_buttons),
+            parse_mode="HTML"
         )
+
     elif query.data.startswith("visa_"):
         country_code = query.data.replace("visa_", "")
         country_names = {
@@ -255,14 +258,14 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         country = country_names.get(country_code, country_code)
         await query.edit_message_text(
             f"🛂 <b>Виза в {country}</b>\n\n"
-            f"📱 Контакт менеджера: <code>{MANAGER_CONTACT}</code>\n\n"
-            f"Хотите оставить заявку на визу в {country}?",
+            f"Хотите оставить заявку на визу?",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("Оставить заявку", callback_data=f"visa_request_{country_code}")],
                 [InlineKeyboardButton("🔙 Назад", callback_data="visas")]
             ]),
             parse_mode="HTML"
         )
+
     elif query.data.startswith("visa_request_"):
         country_code = query.data.replace("visa_request_", "")
         country_names = {
@@ -323,5 +326,4 @@ async def main():
 if __name__ == '__main__':
     import nest_asyncio
     nest_asyncio.apply()
-
     asyncio.run(main())
