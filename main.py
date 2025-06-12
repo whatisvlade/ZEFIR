@@ -133,7 +133,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text, url = tour_links[query.data]
         manager_phone = MANAGER_CONTACTS.get(query.data, MANAGER_CONTACTS["default"])
         await query.edit_message_text(
-            f"{text}\n\n📱 Контакт менеджера: <code>{manager_phone}</code>",
+            f"{text}\n\n📱 Контакт менеджера: {manager_phone}",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔗 Подробнее / Программа тура", url=url)],
                 [InlineKeyboardButton("Оставить заявку", callback_data=f"request_{query.data}")],
