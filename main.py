@@ -50,24 +50,55 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
             ])
         )
+
     elif query.data in ["georgia", "abkhazia", "gelendzhik", "dagestan", "piter", "teriberka", "belarus"]:
         tour_links = {
-            "georgia": ("Грузия — прекрасная страна с горами, морем и вином.", "https://example.com/georgia"),
-            "abkhazia": ("Абхазия — отдых на побережье Чёрного моря.", "https://example.com/abkhazia"),
-            "gelendzhik": ("Геленджик — курорт на берегу Чёрного моря.", "https://example.com/gelendzhik"),
-            "dagestan": ("Дагестан — горы, культура и экстрим.", "https://example.com/dagestan"),
-            "piter": ("Питер (Санкт-Петербург) — культурная столица России.", "https://example.com/piter"),
-            "teriberka": ("Териберка — север, китов и северное сияние.", "https://example.com/teriberka"),
-            "belarus": ("Туры по Беларуси — уют, природа и история.", "https://example.com/belarus")
+            "georgia": (
+                "Грузия — прекрасная страна с горами, морем и вином.",
+                "https://example.com/georgia",
+                "+375 29 123-45-67"  # Менеджер по Грузии
+            ),
+            "abkhazia": (
+                "Абхазия — отдых на побережье Чёрного моря.",
+                "https://example.com/abkhazia",
+                "+375 29 234-56-78"
+            ),
+            "gelendzhik": (
+                "Геленджик — курорт на берегу Чёрного моря.",
+                "https://example.com/gelendzhik",
+                "+375 29 345-67-89"
+            ),
+            "dagestan": (
+                "Дагестан — горы, культура и экстрим.",
+                "https://example.com/dagestan",
+                "+375 29 456-78-90"
+            ),
+            "piter": (
+                "Питер (Санкт-Петербург) — культурная столица России.",
+                "https://example.com/piter",
+                "+375 29 567-89-01"
+            ),
+            "teriberka": (
+                "Териберка — север, китов и северное сияние.",
+                "https://example.com/teriberka",
+                "+375 29 678-90-12"
+            ),
+            "belarus": (
+                "Туры по Беларуси — уют, природа и история.",
+                "https://example.com/belarus",
+                "+375 29 789-01-23"
+            ),
         }
-        text, url = tour_links[query.data]
+        text, url, manager_phone = tour_links[query.data]
         await query.edit_message_text(
             f"✅ {text}\n\nОзнакомиться подробнее:",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔗 Перейти на сайт", url=url)],
+                [InlineKeyboardButton("📱 Контакт менеджера направления", url=f"tel:{manager_phone}")],
                 [InlineKeyboardButton("🔙 Назад", callback_data="bus_tours")]
             ])
         )
+
     elif query.data == "avia_tours":
         await query.edit_message_text(
             "✈️ Авиа туры:\nТут будет информация об авиаперелетах (заглушка)",
@@ -75,6 +106,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
             ])
         )
+
     elif query.data == "visas":
         await query.edit_message_text(
             "🛂 Визы:\nТут будет информация по визам (заглушка)",
@@ -82,6 +114,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
             ])
         )
+
     elif query.data == "contact":
         await query.edit_message_text(
             "📞 Связаться:\nТелефон: +375 29 000-00-00\nEmail: info@zefir.travel",
@@ -89,6 +122,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
             ])
         )
+
     elif query.data == "back_to_menu":
         await query.edit_message_text(
             f"Привет, {query.from_user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
