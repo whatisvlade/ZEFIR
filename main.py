@@ -26,7 +26,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Привет, {user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
-            [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
             [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
             [InlineKeyboardButton("📞 Связаться", callback_data="contact")]
         ])
@@ -184,7 +183,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ),
             parse_mode="HTML"
         )
-        await asyncio.sleep(5)
+        await asyncio.sleep(3)
         try:
             await context.bot.delete_message(
                 chat_id=sent_message.chat_id,
@@ -193,14 +192,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass  # если нет прав — не критично
         await query.answer("Спасибо! Ваша заявка отправлена!", show_alert=True)
-
-    elif query.data == "avia_tours":
-        await query.edit_message_text(
-            "✈️ Авиа туры:\nТут будет информация об авиаперелетах (заглушка)",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ])
-        )
 
     elif query.data == "visas":
         await query.edit_message_text(
