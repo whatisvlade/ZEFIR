@@ -176,10 +176,13 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = query.from_user
 
         # Отправить заявку менеджеру (сюда же для теста, можно на отдельный chat_id)
-        await context.bot.send_message(
-            chat_id=query.message.chat.id,
-            text=f"{REQUEST_TRIGGER} {title}\nИмя: {user.first_name} @{user.username if user.username else ''}"
-        )
+        MANAGER_CHAT_ID = os.getenv("MANAGER_CHAT_ID", None)  # Вставь реальный chat_id менеджера!
+        if MANAGER_CHAT_ID:
+           await context.bot.send_message(
+               chat_id=MANAGER_CHAT_ID,
+                text=f"{REQUEST_TRIGGER} {title}\nИмя: {user.first_name} @{user.username if user.username else ''}"
+           )
+
 
         # Ответ пользователю
         now_hour = datetime.now().hour
