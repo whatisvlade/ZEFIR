@@ -5,6 +5,7 @@ from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 from datetime import datetime
+import pytz  # <--- добавлено
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 REQUEST_TRIGGER = "#ЗАЯВКА"
@@ -96,6 +97,12 @@ direction_names = {
 
 avia_tour_link = "https://tours.example.com"  # Замените на свою ссылку
 
+def get_moscow_hour():
+    """Возвращает час по московскому времени."""
+    moscow_tz = pytz.timezone("Europe/Moscow")
+    now_moscow = datetime.now(moscow_tz)
+    return now_moscow.hour
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await update.message.reply_text(
@@ -186,7 +193,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception:
                 pass
         asyncio.create_task(delete_request_msg(context.bot, query.message.chat.id, msg.message_id))
-        now_hour = datetime.now().hour
+        now_hour = get_moscow_hour()  # <-- МОСКОВСКОЕ ВРЕМЯ
         if 21 <= now_hour or now_hour < 10:
             resp = "Заявка отправлена!\nВ рабочее время с вами свяжется менеджер."
         else:
@@ -215,7 +222,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception:
                 pass
         asyncio.create_task(delete_request_msg(context.bot, query.message.chat.id, msg.message_id))
-        now_hour = datetime.now().hour
+        now_hour = get_moscow_hour()  # <-- МОСКОВСКОЕ ВРЕМЯ
         if 21 <= now_hour or now_hour < 10:
             resp = "Заявка отправлена!\nВ рабочее время с вами свяжется менеджер."
         else:
@@ -256,7 +263,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception:
                 pass
         asyncio.create_task(delete_request_msg(context.bot, query.message.chat.id, msg.message_id))
-        now_hour = datetime.now().hour
+        now_hour = get_moscow_hour()  # <-- МОСКОВСКОЕ ВРЕМЯ
         if 21 <= now_hour or now_hour < 10:
             resp = "Заявка на подбор тура отправлена!\nВ рабочее время с вами свяжется менеджер."
         else:
