@@ -1,314 +1,180 @@
-import asyncio
 import os
-from flask import Flask
-from threading import Thread
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
-from datetime import datetime
-import pytz  # <--- добавлено
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.filters import Command
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.context import FSMContext
+from jinja2 import Template
+import zipfile
+import shutil
+import asyncio
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-REQUEST_TRIGGER = "#ЗАЯВКА"
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(storage=MemoryStorage())
 
-# Все номера менеджеров для удобного редактирования:
-MANAGER_CONTACTS = {
-    "default": "+375290000000",  # Общий по умолчанию/на главную/на контакты
-    "georgia": "+375291234567",
-    "abkhazia": "+375292345678",
-    "gelendzhik": "+375293456789",
-    "dagestan": "+375294567890",
-    "piter": "+375295678901",
-    "teriberka": "+375296789012",
-    "belarus": "+375297890123",
-    "avia": "+375298888888",       # Менеджер по авиа турам
-    "visa": "+375299999999",       # Менеджер по визам
-}
+class Form(StatesGroup):
+    name = State()
+    email = State()
+    password = State()
+    emailpassword = State()
+    chat_id = State()
+    travel_date = State()
+    visa_type = State()
+    date_range = State()
+    forbidden_dates = State()
+    strategy = State()
 
-app = Flask('')
+@dp.message(Command("start"))
+async def start_cmd(message: types.Message, state: FSMContext):
+    await state.clear()
+    await message.answer("Привет! Введите ФИО:")
+    await state.set_state(Form.name)
 
-@app.route('/')
-def home():
-    return "✅ Бот работает"
+@dp.message(Form.name)
+async def get_name(message: types.Message, state: FSMContext):
+    await state.update_data(name=message.text.strip())
+    await message.answer("Введите email (логин):")
+    await state.set_state(Form.email)
 
-def run():
-    app.run(host='0.0.0.0', port=8080)
+@dp.message(Form.email)
+async def get_email(message: types.Message, state: FSMContext):
+    await state.update_data(email=message.text.strip())
+    await message.answer("Введите пароль:")
+    await state.set_state(Form.password)
 
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
+@dp.message(Form.password)
+async def get_password(message: types.Message, state: FSMContext):
+    await state.update_data(password=message.text.strip())
+    await message.answer("Введите пароль от почты:")
+    await state.set_state(Form.emailpassword)
 
-visa_countries = [
-    ("🇮🇹 Италия", "italy"),
-    ("🇪🇸 Испания", "spain"),
-    ("🇵🇱 Польша", "poland"),
-    ("🇭🇺 Венгрия", "hungary"),
-    ("🇫🇷 Франция", "france"),
-    ("🇧🇬 Болгария", "bulgaria"),
-    ("🇬🇷 Греция", "greece")
-]
+@dp.message(Form.emailpassword)
+async def get_email_password(message: types.Message, state: FSMContext):
+    await state.update_data(emailpassword=message.text.strip())
+    await message.answer("Введите chat ID:")
+    await state.set_state(Form.chat_id)
 
-tour_links = {
-    "georgia": (
-        "Грузия — прекрасная страна с горами, морем и вином.",
-        "https://example.com/georgia"
-    ),
-    "abkhazia": (
-        "<b>Абхазия: Два варианта!</b> 1️⃣ <b>АВТОБУСНЫЙ</b> ... 2️⃣ <b>ЖД</b> ... <b>Программы тура:</b> (ссылка кнопкой ниже) ",
-        "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_1198337567=Y"
-    ),
-    "gelendzhik": (
-        "<b>Тур в Геленджик</b> <b>Даты:</b> ... <b>Программы тура:</b> (ссылка кнопкой ниже) ",
-        "https://zefirtravel.by/avtobusnie-tury-iz-minska-s-otdyhom-na-more/?set_filter=y&arFilterTours_262_2671772459=Y"
-    ),
-    "dagestan": (
-        "<b>Тур в Дагестан</b> Даты: ... ",
-        "https://zefirtravel.by/offers/tur-v-dagestan-serdtse-kavkaza/"
-    ),
-    "piter": (
-        "<b>Тур в Санкт-Петербург</b> <b>Даты:</b> ... <b>Программа тура:</b> (ссылка кнопкой ниже) ",
-        "https://zefirtravel.by/offers/tur-v-sankt-peterburg-kareliya/"
-    ),
-    "teriberka": (
-        "<b>Тур в Териберку!</b> <b>Даты:</b> ... ",
-        "https://zefirtravel.by/offers/teriberka-aysfloating-i-mogushchestvennye-kity/"
-    ),
-    "belarus": (
-        "<b>Западные сокровища Беларуси: Коссово и Ружаны</b> Даты: ... <b>Подробнее:</b> (ссылка кнопкой ниже) ",
-        "https://zefirtravel.by/offers/zapadnye-sokrovishcha-belarusi-kossovo-i-ruzhany/"
-    ),
-}
+@dp.message(Form.chat_id)
+async def get_chat_id(message: types.Message, state: FSMContext):
+    await state.update_data(chat_id=message.text.strip())
+    await message.answer("Введите дату поездки (например 2025-08-01):")
+    await state.set_state(Form.travel_date)
 
-direction_names = {
-    "georgia": "Грузия",
-    "abkhazia": "Абхазия",
-    "gelendzhik": "Геленджик",
-    "dagestan": "Дагестан",
-    "piter": "Питер",
-    "teriberka": "Териберка",
-    "belarus": "Беларусь",
-    "italy": "Италия",
-    "spain": "Испания",
-    "poland": "Польша",
-    "hungary": "Венгрия",
-    "france": "Франция",
-    "bulgaria": "Болгария",
-    "greece": "Греция"
-}
+@dp.message(Form.travel_date)
+async def get_travel_date(message: types.Message, state: FSMContext):
+    await state.update_data(travel_date=message.text.strip())
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Normal", callback_data="visa_normal"),
+         InlineKeyboardButton(text="Premium", callback_data="visa_premium"),
+         InlineKeyboardButton(text="Рандом", callback_data="visa_random")]
+    ])
+    await message.answer("Выберите тип визы:", reply_markup=kb)
+    await state.set_state(Form.visa_type)
 
-avia_tour_link = "https://tours.example.com"  # Замените на свою ссылку
+@dp.callback_query(Form.visa_type)
+async def visa_type_choice(call: types.CallbackQuery, state: FSMContext):
+    val = call.data.replace("visa_", "")
+    await state.update_data(visa_type=val)
+    await call.message.answer("Введите диапазон дат для выбора (например 1-30):")
+    await state.set_state(Form.date_range)
+    await call.answer()
 
-def get_moscow_hour():
-    """Возвращает час по московскому времени."""
-    moscow_tz = pytz.timezone("Europe/Moscow")
-    now_moscow = datetime.now(moscow_tz)
-    return now_moscow.hour
+@dp.message(Form.date_range)
+async def get_date_range(message: types.Message, state: FSMContext):
+    await state.update_data(date_range=message.text.strip())
+    await message.answer("Введите запрещённые дни (через запятую, например 20,21) или “-” если нет:")
+    await state.set_state(Form.forbidden_dates)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    await update.message.reply_text(
-        f"Привет, {user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
-            [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
-            [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
-            [InlineKeyboardButton("📞 Контакты", callback_data="contact")]
-        ])
-    )
+@dp.message(Form.forbidden_dates)
+async def get_forbidden_dates(message: types.Message, state: FSMContext):
+    await state.update_data(forbidden_dates=message.text.strip())
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Первая дата и первое время", callback_data="first_first")],
+        [InlineKeyboardButton(text="Первая дата и последнее время", callback_data="first_last")],
+        [InlineKeyboardButton(text="Последняя дата и первое время", callback_data="last_first")],
+        [InlineKeyboardButton(text="Последняя дата и последнее время", callback_data="last_last")],
+        [InlineKeyboardButton(text="Рандомный выбор", callback_data="random")]
+    ])
+    await message.answer("Выберите стратегию выбора даты и времени:", reply_markup=kb)
+    await state.set_state(Form.strategy)
 
-async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
+@dp.callback_query(Form.strategy)
+async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
+    val = call.data
+    await state.update_data(strategy=val)
+    await call.message.answer("Генерируем архив...")
 
-    # --- Автобусные туры ---
-    if query.data == "bus_tours":
-        await query.edit_message_text(
-            "🚌 Автобусные туры:\nВыберите направление:",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🌄Грузия", callback_data="georgia")],
-                [InlineKeyboardButton("🌄 Абхазия", callback_data="abkhazia")],
-                [InlineKeyboardButton("🏖️ Геленджик", callback_data="gelendzhik")],
-                [InlineKeyboardButton("🌄 Дагестан", callback_data="dagestan")],
-                [InlineKeyboardButton("🌉 Питер", callback_data="piter")],
-                [InlineKeyboardButton("❄️ Териберка", callback_data="teriberka")],
-                [InlineKeyboardButton("🇧🇾 Беларусь", callback_data="belarus")],
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ])
-        )
+    # Готовим шаблонные переменные
+    data = await state.get_data()
+    context = {
+        "USER_NAME": data["name"],
+        "EMAIL": data["email"],
+        "PASSWORD": data["password"],
+        "EMAILPASSWORD": data["emailpassword"],
+        "TELEGRAM_CHAT_ID": data["chat_id"],
+        "TRAVEL_DATE": data["travel_date"],
+        "VISA_TYPE": data["visa_type"],
+    }
+    # Разбор диапазона и запрещённых дат
+    try:
+        dr = data["date_range"].replace(" ", "").split("-")
+        context["START_DATE"] = int(dr[0])
+        context["END_DATE"] = int(dr[1])
+    except Exception:
+        context["START_DATE"] = 1
+        context["END_DATE"] = 31
 
-    # --- Страница направления автобусов ---
-    elif query.data in tour_links.keys():
-        text, url = tour_links[query.data]
-        manager_phone = MANAGER_CONTACTS.get(query.data, MANAGER_CONTACTS["default"])
-        await query.edit_message_text(
-            f"{text}\n\n📱 Контакт менеджера: {manager_phone}",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔗 Подробнее / Программа тура", url=url)],
-                [InlineKeyboardButton("Оставить заявку", callback_data=f"request_{query.data}")],
-                [InlineKeyboardButton("🔙 Назад", callback_data="bus_tours")]
-            ]),
-            parse_mode="HTML"
-        )
+    forb = data["forbidden_dates"].replace(" ", "")
+    if forb == "-" or forb == "":
+        context["FORBIDDEN_DATES"] = ""
+    else:
+        context["FORBIDDEN_DATES"] = ",".join(f"'{d}'" for d in forb.split(",") if d)
 
-    # --- Визы ---
-    elif query.data == "visas":
-        manager_phone = MANAGER_CONTACTS.get("visa", MANAGER_CONTACTS["default"])
-        countries_buttons = [
-            [InlineKeyboardButton(flag, callback_data=f"visa_{code}")] for flag, code in visa_countries
-        ]
-        countries_buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")])
-        await query.edit_message_text(
-            "🛂 Визы:\nВыберите страну для оформления визы:\n\n"
-            f"📱 Контакт менеджера: {manager_phone}",
-            reply_markup=InlineKeyboardMarkup(countries_buttons),
-            parse_mode="HTML"
-        )
+    # Копируем шаблоны во временную папку и генерируем ZIP
+    import tempfile
+    tmpdir = tempfile.mkdtemp()
+    # Копируем client-скрипты с рендером
+    for file in os.listdir("templates"):
+        if file.endswith(".js"):
+            with open(f"templates/{file}", encoding="utf-8") as f:
+                template = Template(f.read())
+                code = template.render(**context)
+            with open(f"{tmpdir}/{file}", "w", encoding="utf-8") as out:
+                out.write(code)
+    # Копируем статик
+    for file in os.listdir("static"):
+        shutil.copy(f"static/{file}", f"{tmpdir}/{file}")
 
-    # --- Страница страны по визам ---
-    elif query.data.startswith("visa_") and not query.data.startswith("visa_request_"):
-        country_code = query.data.replace("visa_", "")
-        country = direction_names.get(country_code, country_code)
-        await query.edit_message_text(
-            f"🛂 <b>Виза в {country}</b>\n\nХотите оставить заявку на визу в {country}?",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("Оставить заявку", callback_data=f"visa_request_{country_code}")],
-                [InlineKeyboardButton("🔙 Назад", callback_data="visas")]
-            ]),
-            parse_mode="HTML"
-        )
+    # Подставляем выбранную стратегию
+    strategy_map = {
+        "first_first": "strategy_first_date_first_time.js",
+        "first_last": "strategy_first_date_last_time.js",
+        "last_first": "strategy_last_date_first_time.js",
+        "last_last": "strategy_last_date_last_time.js",
+        "random": "strategy_random_date_random_time.js",
+    }
+    strategy_file = strategy_map.get(data["strategy"])
+    if strategy_file:
+        with open(f"strategies/{strategy_file}", encoding="utf-8") as f:
+            template = Template(f.read())
+            code = template.render(**context)
+        with open(f"{tmpdir}/strategy.js", "w", encoding="utf-8") as out:
+            out.write(code)
 
-    # --- Заявка на визу ---
-    elif query.data.startswith("visa_request_"):
-        direction = query.data.replace("visa_request_", "")
-        title = f"Виза: {direction_names.get(direction, direction)}"
-        back_btn = "visas"
-        user = query.from_user
-        msg = await context.bot.send_message(
-            chat_id=query.message.chat.id,
-            text=f"{REQUEST_TRIGGER} {title}\nИмя: {user.first_name} @{user.username if user.username else ''}"
-        )
-        async def delete_request_msg(bot, chat_id, message_id):
-            await asyncio.sleep(3)
-            try:
-                await bot.delete_message(chat_id=chat_id, message_id=message_id)
-            except Exception:
-                pass
-        asyncio.create_task(delete_request_msg(context.bot, query.message.chat.id, msg.message_id))
-        now_hour = get_moscow_hour()  # <-- МОСКОВСКОЕ ВРЕМЯ
-        if 21 <= now_hour or now_hour < 10:
-            resp = "Заявка отправлена!\nВ рабочее время с вами свяжется менеджер."
-        else:
-            resp = "Заявка отправлена!\nОжидайте, с вами свяжется менеджер."
-        await query.edit_message_text(
-            resp,
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Назад", callback_data=back_btn)]
-            ])
-        )
+    # Собираем ZIP
+    zip_path = f"{tmpdir}/scripts.zip"
+    with zipfile.ZipFile(zip_path, "w") as zipf:
+        for f in os.listdir(tmpdir):
+            if f.endswith(".js"):
+                zipf.write(os.path.join(tmpdir, f), arcname=f)
+    with open(zip_path, "rb") as zf:
+        await call.message.answer_document(types.BufferedInputFile(zf.read(), "scripts.zip"), caption="Ваш архив готов!")
 
-    # --- Заявка на тур (автобусные) ---
-    elif query.data.startswith("request_"):
-        direction = query.data.replace("request_", "")
-        title = f"Тур: {direction_names.get(direction, direction)}"
-        back_btn = "bus_tours"
-        user = query.from_user
-        msg = await context.bot.send_message(
-            chat_id=query.message.chat.id,
-            text=f"{REQUEST_TRIGGER} {title}\nИмя: {user.first_name} @{user.username if user.username else ''}"
-        )
-        async def delete_request_msg(bot, chat_id, message_id):
-            await asyncio.sleep(3)
-            try:
-                await bot.delete_message(chat_id=chat_id, message_id=message_id)
-            except Exception:
-                pass
-        asyncio.create_task(delete_request_msg(context.bot, query.message.chat.id, msg.message_id))
-        now_hour = get_moscow_hour()  # <-- МОСКОВСКОЕ ВРЕМЯ
-        if 21 <= now_hour or now_hour < 10:
-            resp = "Заявка отправлена!\nВ рабочее время с вами свяжется менеджер."
-        else:
-            resp = "Заявка отправлена!\nОжидайте, с вами свяжется менеджер."
-        await query.edit_message_text(
-            resp,
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Назад", callback_data=back_btn)]
-            ])
-        )
+    await state.clear()
+    await call.answer()
 
-    # --- Авиа туры ---
-    elif query.data == "avia_tours":
-        manager_phone = MANAGER_CONTACTS.get("avia", MANAGER_CONTACTS["default"])
-        await query.edit_message_text(
-            "✈️ Авиа туры:\n\n"
-            "Выберите действие:\n\n"
-            f"📱 Контакт менеджера: {manager_phone}",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("Самостоятельный подбор тура", url=avia_tour_link)],
-                [InlineKeyboardButton("Оставить заявку (подбор тура с менеджером)", callback_data="avia_request")],
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ]),
-            parse_mode="HTML"
-        )
-
-    # --- Оставить заявку (авиа тур, менеджер) ---
-    elif query.data == "avia_request":
-        user = query.from_user
-        msg = await context.bot.send_message(
-            chat_id=query.message.chat.id,
-            text=f"{REQUEST_TRIGGER} Авиа тур\nИмя: {user.first_name} @{user.username if user.username else ''}"
-        )
-        async def delete_request_msg(bot, chat_id, message_id):
-            await asyncio.sleep(3)
-            try:
-                await bot.delete_message(chat_id=chat_id, message_id=message_id)
-            except Exception:
-                pass
-        asyncio.create_task(delete_request_msg(context.bot, query.message.chat.id, msg.message_id))
-        now_hour = get_moscow_hour()  # <-- МОСКОВСКОЕ ВРЕМЯ
-        if 21 <= now_hour or now_hour < 10:
-            resp = "Заявка на подбор тура отправлена!\nВ рабочее время с вами свяжется менеджер."
-        else:
-            resp = "Заявка на подбор тура отправлена!\nОжидайте, с вами свяжется менеджер."
-        await query.edit_message_text(
-            resp,
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Назад", callback_data="avia_tours")]
-            ])
-        )
-
-    # --- Контакты ---
-    elif query.data == "contact":
-        manager_phone = MANAGER_CONTACTS.get("default")
-        await query.edit_message_text(
-            f"📞 Контакты:\n"
-            f"📱 Общий номер: {manager_phone}"
-            "🏢 Адрес: г. Минск, ул. Примерная, 1\n"
-            "🕓 Время работы: пн-пт 10:00–19:00, сб 11:00–16:00, вс — по договорённости",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Назад", callback_data="back_to_menu")]
-            ]),
-            parse_mode="HTML"
-        )
-
-    # --- Назад в главное меню ---
-    elif query.data == "back_to_menu":
-        await query.edit_message_text(
-            f"Привет, {query.from_user.first_name}! 👋\nДобро пожаловать в Zefir Travel!\nВыберите, что вас интересует:",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🚌 Автобусные туры", callback_data="bus_tours")],
-                [InlineKeyboardButton("✈️ Авиа туры", callback_data="avia_tours")],
-                [InlineKeyboardButton("🛂 Визы", callback_data="visas")],
-                [InlineKeyboardButton("📞 Контакты", callback_data="contact")]
-            ])
-        )
-
-async def main():
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(handle_button))
-    keep_alive()
-    await application.run_polling()
-
-if __name__ == '__main__':
-    import nest_asyncio
-    nest_asyncio.apply()
-    asyncio.run(main())
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(dp.start_polling(bot))
