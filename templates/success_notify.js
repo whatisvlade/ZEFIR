@@ -1,139 +1,129 @@
 // ==UserScript==
-// @name         НЕ ПРОШЕЛ ВЕРИФИКАЦИЮ (Improved)
+// @name         success_notify
 // @namespace    http://tampermonkey.net/
-// @version      2025-06-03
-// @description  Автоматизация повторной верификации и отправка уведомлений в Telegram
+// @version      2025-02-08
+// @description  try to take over the world!
 // @author       You
-// @match        https://belarus.blsspainglobal.com/Global/Appointment/Liveness*
-// @icon         https://www.google.com/s2/favicons?sz=64&domain=blsspainrussia.ru
+// @match        https://belarus.blsspainglobal.com/Global/payment/PaymentResponse*
 // @grant        none
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
 
-    // Имя пользователя для уведомлений
-    const USER_NAME = "{{ USER_NAME }}";
-
     // Конфигурация Telegram
-    const TELEGRAM_BOT_TOKEN = '7901901530:AAE29WGTOS3s7TBVUmShUEYBkXXPq7Ew1UA'; // Замените на ваш токен
-    const TELEGRAM_CHAT_ID = "{{ TELEGRAM_CHAT_ID }}"; // Замените на ваш Chat ID
+    const TELEGRAM_BOT_TOKEN = '7901901530:AAE29WGTOS3s7TBVUmShUEYBkXXPq7Ew1UA'; // Замените на ваш токен бота
+    const TELEGRAM_CHAT_ID = '{{ TELEGRAM_CHAT_ID }}'; // Замените на ID чата
 
+    // Флаг для отслеживания отправки сообщения
     let messageWasSent = false;
 
-    // UI-оповещение
-    function showUIMessage(text, color = '#28a745') {
-        const existing = document.getElementById('telegram-status-message');
-        if (existing) existing.remove();
-
-        const msg = document.createElement('div');
-        msg.id = 'telegram-status-message';
-        msg.textContent = text;
-        msg.style.position = 'fixed';
-        msg.style.bottom = '20px';
-        msg.style.left = '50%';
-        msg.style.transform = 'translateX(-50%)';
-        msg.style.backgroundColor = color;
-        msg.style.color = 'white';
-        msg.style.padding = '10px 20px';
-        msg.style.borderRadius = '8px';
-        msg.style.fontSize = '16px';
-        msg.style.zIndex = '999999';
-        msg.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-        document.body.appendChild(msg);
-
-        setTimeout(() => msg.remove(), 5000);
-    }
-
-    // Отправка уведомления в Telegram
-    async function sendTelegramMessage() {
-        if (messageWasSent) return;
+    // Функция для отправки сообщения в Telegram
+    async function sendTelegramMessage(message) {
+        if (messageWasSent) return; // Проверяем, было ли уже отправлено сообщение
 
         const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
         try {
             const response = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({
                     chat_id: TELEGRAM_CHAT_ID,
-                    text: `❌${USER_NAME} не прошел верификацию и пробует еще раз`,
+                    text: message,
                     parse_mode: 'HTML'
                 })
             });
             const data = await response.json();
-            if (!data.ok) {
-                console.error('Ошибка Telegram API:', data);
-                showUIMessage('Ошибка отправки в Telegram', '#dc3545');
-            } else {
-                console.log('Сообщение отправлено в Telegram:', data);
-                showUIMessage('Сообщение отправлено в Telegram!');
-                messageWasSent = true;
-            }
+            console.log('Сообщение отправлено в Telegram:', data);
+            messageWasSent = true; // Устанавливаем флаг, что сообщение отправлено
         } catch (error) {
             console.error('Ошибка отправки в Telegram:', error);
-            showUIMessage('Ошибка отправки в Telegram', '#dc3545');
         }
     }
 
-    // Ожидание элемента
-    function waitForElement(selector, callback, interval = 100, timeout = 5000) {
-        const startTime = Date.now();
-        const timer = setInterval(() => {
-            const element = document.querySelector(selector);
-            if (element) {
-                clearInterval(timer);
-                callback(element);
-            } else if (Date.now() - startTime > timeout) {
-                clearInterval(timer);
-                console.log(`Элемент ${selector} не найден за ${timeout} мс.`);
+    // Функция для проверки загрузки элемента
+    function waitForElement(selector) {
+        return new Promise(resolve => {
+            if (document.querySelector(selector)) {
+                return resolve(document.querySelector(selector));
             }
-        }, interval);
-    }
 
-    // Обработка первого сообщения
-    waitForElement('.alert.alert-warning.text-center', (alertElement) => {
-        alertElement.innerHTML = `
-            <h5 class="text-warning-emphasis">Внимание</h5>
-            Сейчас начнется видео верификация, просьба найти хорошо освещенное место для ее прохождения. Верификация начнется через 10 секунд.<br><br>
-            <button class="btn btn-success" id="autoAcceptButton" type="submit" onclick="return OnLivenessSubmit();" style="display: none;">Принять</button>
-        `;
-
-        setTimeout(() => {
-            const acceptButton = document.getElementById('autoAcceptButton');
-            if (acceptButton) {
-                acceptButton.click();
-                console.log("Кнопка 'Принять' нажата.");
-                showUIMessage('Начало верификации');
-            } else {
-                console.log("Кнопка 'Принять' не найдена.");
-            }
-        }, 10000);
-    });
-
-    // Обработка ошибки верификации
-    waitForElement('.validation-summary.validation-summary-errors', () => {
-        sendTelegramMessage();
-
-        const alertElement = document.querySelector('.alert.alert-warning.text-center');
-        if (alertElement) {
-            alertElement.innerHTML = `
-                <h5 class="text-warning-emphasis">ВЕРИФИКАЦИЯ ПРОЙДЕНА НЕ УСПЕШНО</h5>
-                ВОЗМОЖНО ПЛОХОЕ ОСВЕЩЕНИЕ, РЕЗКИЕ ДВИЖЕНИЯ НА КАМЕРУ, ГОЛОВНОЙ УБОР МЕШАЕТ, ШЕЯ ЗАКРЫТА, ПРОБУЕМ ЕЩЕ РАЗ, ВЕРИФИКАЦИЯ НАЧНЕТСЯ ЧЕРЕЗ 15 СЕКУНД.<br><br>
-                <button class="btn btn-success" id="autoAcceptButton" type="submit" onclick="return OnLivenessSubmit();" style="display: none;">Принять</button>
-            `;
-
-            setTimeout(() => {
-                const acceptButton = document.getElementById('autoAcceptButton');
-                if (acceptButton) {
-                    acceptButton.click();
-                    console.log("Кнопка 'Принять' нажата.");
-                    showUIMessage('Повторная верификация начата');
-                } else {
-                    console.log("Кнопка 'Принять' не найдена.");
+            const observer = new MutationObserver(mutations => {
+                if (document.querySelector(selector)) {
+                    observer.disconnect();
+                    resolve(document.querySelector(selector));
                 }
-            }, 15000);
-        } else {
-            console.log("Элемент с классом 'alert alert-warning text-center' не найден для сообщения об ошибке.");
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+    }
+
+    // Функция для извлечения данных и отправки в Telegram
+    async function extractAndSendData() {
+        try {
+            console.log('Ожидание загрузки элемента...');
+
+            // Ждем появления нужного элемента
+            const cardDiv = await waitForElement('.card.card-body.bg-light.p-4');
+
+            // Дополнительная задержка для гарантии загрузки содержимого
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            console.log('Элемент найден, начинаем извлечение данных');
+
+            // Извлекаем текст
+            const items = cardDiv.querySelectorAll('.list-group-item');
+            let data = "<b>Appointment Summary</b>\n\n";
+
+            items.forEach((item) => {
+                const label = item.querySelector('span:nth-child(1)');
+                const value = item.querySelector('span:nth-child(2)');
+                if (label && value) {
+                    data += `<b>${label.textContent.trim()}</b>: ${value.textContent.trim()}\n`;
+                }
+            });
+
+            // Отправляем данные в Telegram
+            await sendTelegramMessage(data);
+            console.log('Данные отправлены в Telegram');
+
+        } catch (error) {
+            console.error('Ошибка при извлечении данных:', error);
         }
-    });
+    }
+
+    // Функция инициализации с проверкой готовности DOM
+    function initialize() {
+        return new Promise(resolve => {
+            if (document.readyState === 'complete') {
+                console.log('DOM уже загружен');
+                resolve();
+            } else {
+                console.log('Ожидание загрузки DOM...');
+                window.addEventListener('load', () => {
+                    console.log('DOM загружен');
+                    resolve();
+                });
+            }
+        });
+    }
+
+    // Запускаем скрипт
+    (async function main() {
+        try {
+            console.log('Начало выполнения скрипта');
+            await initialize();
+            console.log('Страница полностью загружена, начинаем извлечение данных');
+            await extractAndSendData();
+        } catch (error) {
+            console.error('Ошибка при выполнении скрипта:', error);
+        }
+    })();
+
 })();
