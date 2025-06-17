@@ -66,9 +66,11 @@ async def get_chat_id(message: types.Message, state: FSMContext):
 async def get_travel_date(message: types.Message, state: FSMContext):
     await state.update_data(travel_date=message.text.strip())
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Normal", callback_data="visa_normal"),
-         InlineKeyboardButton(text="Premium", callback_data="visa_premium"),
-         InlineKeyboardButton(text="Рандом", callback_data="visa_random")]
+        [
+            InlineKeyboardButton(text="Normal", callback_data="visa_normal"),
+            InlineKeyboardButton(text="Premium", callback_data="visa_premium"),
+            InlineKeyboardButton(text="Рандом", callback_data="visa_random"),
+        ]
     ])
     await message.answer("Выберите тип визы:", reply_markup=kb)
     await state.set_state(Form.visa_type)
@@ -95,7 +97,7 @@ async def get_forbidden_dates(message: types.Message, state: FSMContext):
         [InlineKeyboardButton(text="Первая дата и последнее время", callback_data="first_last")],
         [InlineKeyboardButton(text="Последняя дата и первое время", callback_data="last_first")],
         [InlineKeyboardButton(text="Последняя дата и последнее время", callback_data="last_last")],
-        [InlineKeyboardButton(text="Рандомный выбор", callback_data="random")]
+        [InlineKeyboardButton(text="Рандомный выбор", callback_data="random")],
     ])
     await message.answer("Выберите стратегию выбора даты и времени:", reply_markup=kb)
     await state.set_state(Form.strategy)
@@ -117,6 +119,20 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
         "TRAVEL_DATE": data["travel_date"],
         "VISA_TYPE": data["visa_type"],
     }
+
+    # === Блок правильной подстановки типа визы ===
+    visa_type = data["visa_type"].lower()
+    if visa_type == "normal":
+        context["VISA_TYPE_1"] = "Normal"
+        context["VISA_TYPE_2"] = "Normal"
+    elif visa_type == "premium":
+        context["VISA_TYPE_1"] = "Premium"
+        context["VISA_TYPE_2"] = "Premium"
+    else:  # рандом
+        context["VISA_TYPE_1"] = "Normal"
+        context["VISA_TYPE_2"] = "Premium"
+    # ============================================
+
     # Разбор диапазона и запрещённых дат
     try:
         dr = data["date_range"].replace(" ", "").split("-")
