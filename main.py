@@ -9,6 +9,7 @@ from jinja2 import Template
 import zipfile
 import shutil
 import asyncio
+import time
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=BOT_TOKEN)
@@ -108,7 +109,7 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
     await state.update_data(strategy=val)
     await call.message.answer("Генерируем архив...")
 
-    # Готовим шаблонные переменные
+    # Шаг 1: формируем контекст для шаблонов
     data = await state.get_data()
     context = {
         "USER_NAME": data["name"],
@@ -120,7 +121,6 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
         "VISA_TYPE": data["visa_type"],
     }
 
-    # === Блок правильной подстановки типа визы ===
     visa_type = data["visa_type"].lower()
     if visa_type == "normal":
         context["VISA_TYPE_1"] = "Normal"
@@ -128,12 +128,11 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
     elif visa_type == "premium":
         context["VISA_TYPE_1"] = "Premium"
         context["VISA_TYPE_2"] = "Premium"
-    else:  # рандом
+    else:
         context["VISA_TYPE_1"] = "Normal"
         context["VISA_TYPE_2"] = "Premium"
-    # ============================================
 
-    # Разбор диапазона и запрещённых дат
+    # Диапазон и запрещённые даты
     try:
         dr = data["date_range"].replace(" ", "").split("-")
         context["START_DATE"] = int(dr[0])
@@ -148,10 +147,12 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
     else:
         context["FORBIDDEN_DATES"] = ",".join(f"'{d}'" for d in forb.split(",") if d)
 
-    # Копируем шаблоны во временную папку и генерируем ZIP
+    # Шаг 2: Копируем шаблоны, статику, стратегию и делаем ZIP
     import tempfile
     tmpdir = tempfile.mkdtemp()
-    # Копируем client-скрипты с рендером
+
+    print("[DEBUG] Копируем шаблоны...")
+    t0 = time.time()
     for file in os.listdir("templates"):
         if file.endswith(".js"):
             with open(f"templates/{file}", encoding="utf-8") as f:
@@ -159,14 +160,18 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
                 code = template.render(**context)
             with open(f"{tmpdir}/{file}", "w", encoding="utf-8") as out:
                 out.write(code)
-    # Копируем статик (ТОЛЬКО ФАЙЛЫ!)
+    print(f"[DEBUG] Шаблоны скопированы за {time.time()-t0:.2f} сек")
+
+    print("[DEBUG] Копируем static...")
+    t1 = time.time()
     for file in os.listdir("static"):
         src = os.path.join("static", file)
         dst = os.path.join(tmpdir, file)
         if os.path.isfile(src):
             shutil.copy(src, dst)
+    print(f"[DEBUG] static скопирован за {time.time()-t1:.2f} сек")
 
-    # Подставляем выбранную стратегию
+    print("[DEBUG] Копируем стратегию...")
     strategy_map = {
         "first_first": "strategy_first_date_first_time.js",
         "first_last": "strategy_first_date_last_time.js",
@@ -181,14 +186,18 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
             code = template.render(**context)
         with open(f"{tmpdir}/strategy.js", "w", encoding="utf-8") as out:
             out.write(code)
+    print(f"[DEBUG] Стратегия скопирована: {strategy_file}")
 
-    # Собираем ZIP (ТОЛЬКО ФАЙЛЫ!)
+    print("[DEBUG] Генерируем ZIP...")
+    t2 = time.time()
     zip_path = f"{tmpdir}/scripts.zip"
     with zipfile.ZipFile(zip_path, "w") as zipf:
         for f in os.listdir(tmpdir):
             fp = os.path.join(tmpdir, f)
             if os.path.isfile(fp):
                 zipf.write(fp, arcname=f)
+    print(f"[DEBUG] ZIP готов за {time.time()-t2:.2f} сек")
+
     with open(zip_path, "rb") as zf:
         await call.message.answer_document(types.BufferedInputFile(zf.read(), "scripts.zip"), caption="Ваш архив готов!")
 
@@ -197,4 +206,5 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
 
 if __name__ == "__main__":
     import asyncio
+    print("[DEBUG] Бот стартует!")
     asyncio.run(dp.start_polling(bot))
