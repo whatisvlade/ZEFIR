@@ -159,9 +159,12 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
                 code = template.render(**context)
             with open(f"{tmpdir}/{file}", "w", encoding="utf-8") as out:
                 out.write(code)
-    # Копируем статик
+    # Копируем статик (ТОЛЬКО ФАЙЛЫ!)
     for file in os.listdir("static"):
-        shutil.copy(f"static/{file}", f"{tmpdir}/{file}")
+        src = os.path.join("static", file)
+        dst = os.path.join(tmpdir, file)
+        if os.path.isfile(src):
+            shutil.copy(src, dst)
 
     # Подставляем выбранную стратегию
     strategy_map = {
@@ -179,11 +182,13 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
         with open(f"{tmpdir}/strategy.js", "w", encoding="utf-8") as out:
             out.write(code)
 
-    # Собираем ZIP
+    # Собираем ZIP (ТОЛЬКО ФАЙЛЫ!)
     zip_path = f"{tmpdir}/scripts.zip"
     with zipfile.ZipFile(zip_path, "w") as zipf:
         for f in os.listdir(tmpdir):
-            zipf.write(os.path.join(tmpdir, f), arcname=f)
+            fp = os.path.join(tmpdir, f)
+            if os.path.isfile(fp):
+                zipf.write(fp, arcname=f)
     with open(zip_path, "rb") as zf:
         await call.message.answer_document(types.BufferedInputFile(zf.read(), "scripts.zip"), caption="Ваш архив готов!")
 
