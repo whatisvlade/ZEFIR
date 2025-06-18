@@ -183,8 +183,7 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
     zip_path = f"{tmpdir}/scripts.zip"
     with zipfile.ZipFile(zip_path, "w") as zipf:
         for f in os.listdir(tmpdir):
-            if f.endswith(".js"):
-                zipf.write(os.path.join(tmpdir, f), arcname=f)
+            zipf.write(os.path.join(tmpdir, f), arcname=f)
     with open(zip_path, "rb") as zf:
         await call.message.answer_document(types.BufferedInputFile(zf.read(), "scripts.zip"), caption="Ваш архив готов!")
 
