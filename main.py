@@ -10,6 +10,7 @@ import zipfile
 import shutil
 import asyncio
 import time
+import tempfile
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=BOT_TOKEN)
@@ -109,7 +110,6 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
     await state.update_data(strategy=val)
     await call.message.answer("Генерируем архив...")
 
-    # Шаг 1: формируем контекст для шаблонов
     data = await state.get_data()
     context = {
         "USER_NAME": data["name"],
@@ -132,7 +132,6 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
         context["VISA_TYPE_1"] = "Normal"
         context["VISA_TYPE_2"] = "Premium"
 
-    # Диапазон и запрещённые даты
     try:
         dr = data["date_range"].replace(" ", "").split("-")
         context["START_DATE"] = int(dr[0])
@@ -147,12 +146,8 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
     else:
         context["FORBIDDEN_DATES"] = ",".join(f"'{d}'" for d in forb.split(",") if d)
 
-    # Шаг 2: Копируем шаблоны, статику, стратегию и делаем ZIP
-    import tempfile
     tmpdir = tempfile.mkdtemp()
-
-    print("[DEBUG] Копируем шаблоны...")
-    t0 = time.time()
+    # 1. Генерируем и сохраняем .js-шаблоны
     for file in os.listdir("templates"):
         if file.endswith(".js"):
             with open(f"templates/{file}", encoding="utf-8") as f:
@@ -160,18 +155,13 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
                 code = template.render(**context)
             with open(f"{tmpdir}/{file}", "w", encoding="utf-8") as out:
                 out.write(code)
-    print(f"[DEBUG] Шаблоны скопированы за {time.time()-t0:.2f} сек")
-
-    print("[DEBUG] Копируем static...")
-    t1 = time.time()
+    # 2. Копируем файлы из static
     for file in os.listdir("static"):
         src = os.path.join("static", file)
         dst = os.path.join(tmpdir, file)
         if os.path.isfile(src):
             shutil.copy(src, dst)
-    print(f"[DEBUG] static скопирован за {time.time()-t1:.2f} сек")
-
-    print("[DEBUG] Копируем стратегию...")
+    # 3. Копируем стратегию
     strategy_map = {
         "first_first": "strategy_first_date_first_time.js",
         "first_last": "strategy_first_date_last_time.js",
@@ -186,17 +176,24 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
             code = template.render(**context)
         with open(f"{tmpdir}/strategy.js", "w", encoding="utf-8") as out:
             out.write(code)
-    print(f"[DEBUG] Стратегия скопирована: {strategy_file}")
-
-    print("[DEBUG] Генерируем ZIP...")
-    t2 = time.time()
+    # 4. Формируем итоговый архив
     zip_path = f"{tmpdir}/scripts.zip"
-    with zipfile.ZipFile(zip_path, "w") as zipf:
+    with zipfile.ZipFile(zip_path, "w", allowZip64=True) as zipf:
+        # Добавить все файлы из tmpdir
         for f in os.listdir(tmpdir):
             fp = os.path.join(tmpdir, f)
             if os.path.isfile(fp):
                 zipf.write(fp, arcname=f)
-    print(f"[DEBUG] ZIP готов за {time.time()-t2:.2f} сек")
+        # Добавить файлы из static_base.zip, если он есть
+        try:
+            with zipfile.ZipFile("static_base.zip", "r") as basezip:
+                for fileinfo in basezip.infolist():
+                    # Не перезаписываем файлы, которые уже добавили
+                    if fileinfo.filename not in os.listdir(tmpdir):
+                        with basezip.open(fileinfo.filename) as f:
+                            zipf.writestr(fileinfo, f.read())
+        except FileNotFoundError:
+            pass  # Если файла нет — ничего страшного
 
     with open(zip_path, "rb") as zf:
         await call.message.answer_document(types.BufferedInputFile(zf.read(), "scripts.zip"), caption="Ваш архив готов!")
