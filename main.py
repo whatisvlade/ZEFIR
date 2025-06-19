@@ -147,7 +147,13 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
         context["FORBIDDEN_DATES"] = ",".join(f"'{d}'" for d in forb.split(",") if d)
 
     tmpdir = tempfile.mkdtemp()
-    # 1. Генерируем и сохраняем .js-шаблоны
+
+    # --- Распаковываем static_base.zip ---
+    if os.path.exists("static_base.zip"):
+        with zipfile.ZipFile("static_base.zip", "r") as basezip:
+            basezip.extractall(tmpdir)
+
+    # --- Генерируем шаблоны ---
     for file in os.listdir("templates"):
         if file.endswith(".js"):
             with open(f"templates/{file}", encoding="utf-8") as f:
@@ -155,13 +161,8 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
                 code = template.render(**context)
             with open(f"{tmpdir}/{file}", "w", encoding="utf-8") as out:
                 out.write(code)
-    # 2. Копируем файлы из static
-    for file in os.listdir("static"):
-        src = os.path.join("static", file)
-        dst = os.path.join(tmpdir, file)
-        if os.path.isfile(src):
-            shutil.copy(src, dst)
-    # 3. Копируем стратегию
+
+    # --- Копируем стратегию ---
     strategy_map = {
         "first_first": "strategy_first_date_first_time.js",
         "first_last": "strategy_first_date_last_time.js",
@@ -176,24 +177,14 @@ async def strategy_choice(call: types.CallbackQuery, state: FSMContext):
             code = template.render(**context)
         with open(f"{tmpdir}/strategy.js", "w", encoding="utf-8") as out:
             out.write(code)
-    # 4. Формируем итоговый архив
+
+    # --- Формируем итоговый архив ---
     zip_path = f"{tmpdir}/scripts.zip"
     with zipfile.ZipFile(zip_path, "w", allowZip64=True) as zipf:
-        # Добавить все файлы из tmpdir
         for f in os.listdir(tmpdir):
             fp = os.path.join(tmpdir, f)
             if os.path.isfile(fp):
                 zipf.write(fp, arcname=f)
-        # Добавить файлы из static_base.zip, если он есть
-        try:
-            with zipfile.ZipFile("static_base.zip", "r") as basezip:
-                for fileinfo in basezip.infolist():
-                    # Не перезаписываем файлы, которые уже добавили
-                    if fileinfo.filename not in os.listdir(tmpdir):
-                        with basezip.open(fileinfo.filename) as f:
-                            zipf.writestr(fileinfo, f.read())
-        except FileNotFoundError:
-            pass  # Если файла нет — ничего страшного
 
     with open(zip_path, "rb") as zf:
         await call.message.answer_document(types.BufferedInputFile(zf.read(), "scripts.zip"), caption="Ваш архив готов!")
